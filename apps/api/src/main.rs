@@ -1,4 +1,9 @@
+use std::time::Duration;
+
+use api::AppState;
+use api::modules::users::UserRepository;
 use axum::{routing::get, Router};
+use sqlx::postgres::PgPoolOptions;
 
 async fn health() -> &'static str {
     "ok"
@@ -6,7 +11,30 @@ async fn health() -> &'static str {
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/health", get(health));
+    dotenvy::dotenv().ok();
+
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .acquire_timeout(Duration::from_secs(30))
+        .connect(&database_url)
+        .await
+        .expect("failed to connect to database");
+
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("failed to run migrations");
+
+    let state = AppState {
+        pool: pool.clone(),
+        users: UserRepository::new(pool),
+    };
+
+    let app = Router::new()
+        .route("/health", get(health))
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
         .await
