@@ -177,6 +177,7 @@ mod tests {
     use super::*;
     use crate::modules::auth::dto::{RegisterClientRequest, RegisterPlumberRequest};
     use crate::modules::auth::passwords::PasswordConfig;
+    use crate::modules::auth::service_token::JwtConfig;
     use crate::modules::auth::verification::EmailVerificationConfig;
     use crate::modules::users::UserRepository;
     use sqlx::PgPool;
@@ -190,6 +191,7 @@ mod tests {
                 secret: "integration-test-hmac-key".to_string(),
                 ttl_hours: 48,
             },
+            jwt_config: JwtConfig::from_env(),
         }
     }
 

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use api::modules::auth::auth_routes;
-use api::modules::auth::{EmailVerificationConfig, PasswordConfig};
+use api::modules::auth::{EmailVerificationConfig, JwtConfig, PasswordConfig};
 use api::AppState;
 use api::modules::users::UserRepository;
 use axum::{routing::get, Router};
@@ -34,6 +34,7 @@ async fn main() {
         users: UserRepository::new(pool.clone()),
         password_config: PasswordConfig::from_env(),
         email_verification: EmailVerificationConfig::from_env(),
+        jwt_config: JwtConfig::from_env(),
     };
 
     let app = Router::new()

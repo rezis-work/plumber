@@ -2,7 +2,7 @@ pub mod modules;
 
 pub use modules::auth::{
     hash_password, normalize_email, validate_password_policy, verify_password, AuthError,
-    EmailVerificationConfig, PasswordConfig,
+    AuthJwtClaims, EmailVerificationConfig, JwtConfig, JwtError, PasswordConfig, TokenType,
 };
 pub use modules::users::{Role, User, UserRepository};
 
@@ -14,4 +14,5 @@ pub struct AppState {
     pub users: UserRepository,
     pub password_config: PasswordConfig,
     pub email_verification: EmailVerificationConfig,
+    pub jwt_config: JwtConfig,
 }
