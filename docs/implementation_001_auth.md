@@ -21,8 +21,9 @@ This is the **entry document** for Feature 001: auth and users (login, tokens, R
 ## Goals (reminder)
 
 - Roles: `client`, `plumber`, `admin`.
-- Email + password; **access** JWT in `Authorization: Bearer`; **refresh** JWT in **httpOnly** cookie with **DB-backed** sessions, rotation, and revocation.
-- Public register: **client** and **plumber** only; **admin** never via public API.
+- **Two public registration flows:** **client** (email + password; email verification token returned in API response until email sending exists) and **plumber** (“become a plumber”: email, password, full name, phone, years of experience)—different endpoints and UIs.
+- **access** JWT in `Authorization: Bearer`; **refresh** JWT in **httpOnly** cookie with **DB-backed** sessions, rotation, and revocation.
+- **Admin** never via public API.
 - RBAC on protected routes; generic login errors.
 
 Use the linked guides when prompting an AI or assigning tasks: each is split into ordered steps with acceptance-style verification.

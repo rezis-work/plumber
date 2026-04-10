@@ -56,7 +56,7 @@ Regardless of option:
 ### Step M2.2 — User profile
 
 1. After login or refresh, call `GET /auth/me` with Bearer access to populate profile in global state (React Context, Zustand, Jotai, etc.).
-2. Treat server response as source of truth for `role` and `is_active`.
+2. Treat server response as source of truth for `role`, `is_active`, and **`is_email_verified`** (gate features or banners until verified).
 
 ### Step M2.3 — Logout local cleanup
 
@@ -86,11 +86,22 @@ Regardless of option:
 
 ## Phase M4 — Screens and flows
 
-### Step M4.1 — Register
+Use **two registration flows** (separate screens/stacks), matching the API and web guide.
 
-1. Fields: email, password, role limited to **client** and **plumber**.
-2. Validation aligned with API.
-3. Map 409 vs validation errors like web.
+### Step M4.1a — Client signup
+
+1. **Fields:** email, password (and optional confirm-password in UI only).
+2. **API:** `POST /auth/register/client`.
+3. **Success:** Navigate to **email verification** messaging; optionally show verification token **only in __DEV__** builds—never in production store builds.
+4. Validation aligned with API (password length, email shape).
+5. Map **409** / **400** like web.
+
+### Step M4.1b — Become a plumber
+
+1. **Fields:** email, password, **full name**, **phone**, **years of experience**.
+2. **API:** `POST /auth/register/plumber`.
+3. **Success:** Distinct confirmation screen (aligned with product: immediate access vs pending approval later).
+4. Validate phone and non-negative years per API contract.
 
 ### Step M4.2 — Login
 
@@ -155,6 +166,8 @@ Regardless of option:
 
 ## Phase M7 — Testing checklist
 
+- [ ] **Client** signup → verification UX (dev token handling if applicable).
+- [ ] **Plumber** signup with full profile → success path.
 - [ ] Login → call protected endpoint → success.
 - [ ] Kill app → reopen → still logged in (refresh path works).
 - [ ] Logout → reopen → login required.
@@ -167,6 +180,7 @@ Regardless of option:
 ## Mobile deliverables checklist
 
 - [ ] Documented choice: cookie jar vs native refresh contract.
+- [ ] **Two registration screens** (client vs become plumber) wired to the correct endpoints.
 - [ ] API client with Bearer + refresh retry.
 - [ ] Secure storage for any long-lived secret (native path).
 - [ ] Navigation split authenticated vs not.

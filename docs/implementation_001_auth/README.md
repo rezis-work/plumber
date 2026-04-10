@@ -20,11 +20,14 @@ Read the API guide before frontend or mobile so contracts and security rules sta
 ## Product goals (summary)
 
 - **Roles:** `client`, `plumber`, `admin`.
-- **Credentials:** email + password.
+- **Credentials:** email + password (plus plumber-specific profile fields for the plumber flow).
+- **Registration is split by role (different API + UI):**
+  - **Client:** `POST /auth/register/client` — body: **email + password** only. User is created with **`is_email_verified = false`**. Response includes a **one-time email verification token** (and expiry) for the client to complete verification later; **sending email is a later step**—for now the token is only returned in JSON.
+  - **Plumber (become a plumber):** `POST /auth/register/plumber` — body: **email, password, full name, phone number, years of experience** (not a generic “pick role” signup). Distinct **UI** from client signup.
 - **Access token:** short-lived JWT in `Authorization: Bearer <token>`.
 - **Refresh token:** long-lived JWT in **httpOnly** cookie; **sessions persisted in DB** with rotation and revocation.
 - **RBAC:** enforce role on protected routes after authentication.
-- **Public registration:** only `client` and `plumber`. **Admin** is never created via public API (seed or internal tooling).
+- **Public registration:** only **client** and **plumber** flows above. **Admin** is never created via public API (seed or internal tooling).
 
 ## Cross-cutting security rules (all layers)
 
@@ -43,4 +46,4 @@ Read the API guide before frontend or mobile so contracts and security rules sta
 
 ## Long-term product note
 
-Plumbers may self-register; **admin approval** of plumber accounts/profiles can be a follow-up feature (separate from this auth track).
+Plumbers self-serve via the **become a plumber** application endpoint; **admin approval** of plumber accounts/profiles remains a natural follow-up (separate migration/feature). Client **email verification** consume endpoint and outbound email are documented as follow-ups in the API guide after Step 3.

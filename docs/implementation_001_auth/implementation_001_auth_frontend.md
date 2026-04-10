@@ -15,7 +15,7 @@
 ### Step A1 — Configuration
 
 1. Define a single source of truth for **public API origin** (e.g. `PUBLIC_API_URL` or `VITE_*` / SvelteKit `env` pattern your project uses).
-2. Document which routes the frontend will call: register, login, refresh, logout, logout-all, me.
+2. Document which routes the frontend will call: **`POST /auth/register/client`**, **`POST /auth/register/plumber`**, (later) verify-email, login, refresh, logout, logout-all, me.
 3. Decide **cookie behavior** for your deployment:
    - **Same origin** (e.g. reverse proxy: browser sees same host for web and API): cookies are straightforward.
    - **Cross origin** (e.g. web on `localhost:5173`, API on `localhost:3001`): you need API **CORS** with `credentials: true`, explicit **Allowed-Origin** (not `*`), and cookie `SameSite=None; Secure` for HTTPS—or use a dev proxy so the browser thinks it is same-origin.
@@ -58,18 +58,29 @@ Choose one approach and document it:
    - Current user DTO (from `/auth/me`) or `null`.
    - Access token string (if kept in memory) or `null`.
    - Loading / error flags for UX.
-2. Expose derived state: `isAuthenticated`, `role`, etc., from verified server data (`/auth/me`), not from client-forged values.
+2. Expose derived state: `isAuthenticated`, `role`, **`isEmailVerified`** (from `/auth/me`), etc., from verified server data—not from client-forged values.
 
 ---
 
 ## Phase C — Auth actions (user flows)
 
-### Step C1 — Register page
+Registration is **two separate UX paths** (different pages/components and API calls)—do **not** use one form with a “role” toggle for production.
 
-1. Form fields: email, password, role selector limited to **client** and **plumber** (do not offer admin).
-2. Client-side validation mirroring API rules (min password length, email shape) to reduce round-trips.
-3. On success: optionally auto-login or redirect to login with success message.
-4. Map API errors: 409 duplicate email vs 400 validation—safe to show specific messages here (unlike login).
+### Step C1a — Client signup (`/register` or `/signup`)
+
+1. **Fields:** email, password (confirm-password optional UX-only).
+2. **Submit:** `POST /auth/register/client` with JSON `{ email, password }`.
+3. **Success:** Show **“verify your email”** state. API returns **`email_verification_token`** and expiry—until you send real email, the UI may show the token only in **development** (env-gated) or a “copy for testing” dev panel; **never** encourage displaying it in production builds.
+4. Client-side validation: mirror Step 2 rules (min password length, email shape).
+5. Map API errors: **409** duplicate email vs **400** validation—specific messages OK here (unlike login).
+
+### Step C1b — Become a plumber (`/register/plumber`, `/apply/plumber`, or similar)
+
+1. **Fields:** email, password, **full name**, **phone number**, **years of experience** (numeric stepper or validated input).
+2. **Submit:** `POST /auth/register/plumber` with JSON matching the API guide.
+3. **Success:** distinct confirmation (e.g. “Application received” or redirect to login)—copy should reflect your policy (instant access vs pending admin approval if you add that later).
+4. Validation: phone format and non-negative years aligned with API; full name length bounds.
+5. Same error-mapping policy as client signup for 409/400.
 
 ### Step C2 — Login page
 
@@ -153,9 +164,10 @@ Document limitations if SSR cannot see httpOnly refresh JWT.
 
 ### Step F1 — Manual test script
 
-1. Register → login → visit protected page → refresh browser tab → still authenticated (refresh flow).
-2. Logout → protected routes inaccessible.
-3. Login on two browsers (if applicable); logout-all → both lose refresh.
+1. **Client:** register via client endpoint → see verification UX (and dev token if applicable) → login (per your API policy for unverified users) → protected page → refresh tab → still authenticated.
+2. **Plumber:** register via plumber endpoint with full profile → login → plumber-only UI if applicable.
+3. Logout → protected routes inaccessible.
+4. Login on two browsers (if applicable); logout-all → both lose refresh.
 
 ### Step F2 — Documentation
 
@@ -167,7 +179,9 @@ Document limitations if SSR cannot see httpOnly refresh JWT.
 ## Frontend deliverables checklist
 
 - [ ] Configured API base URL and credentials mode for cookie endpoints.
-- [ ] Login/register/logout flows wired with correct error messaging policy.
+- [ ] **Separate** client signup vs **become plumber** flows (routes + forms + API calls).
+- [ ] Client post-signup **email verification** UX; dev-only handling of verification token until email is sent server-side.
+- [ ] Login/logout flows wired with correct error messaging policy.
 - [ ] Access token lifecycle with refresh-on-401 (or equivalent).
 - [ ] Protected routes and role-based redirects.
-- [ ] No secrets in client bundle; no password/token logging.
+- [ ] No secrets in client bundle; no password/token logging in production.

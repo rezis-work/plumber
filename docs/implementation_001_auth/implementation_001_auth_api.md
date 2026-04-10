@@ -100,40 +100,106 @@ Implement async methods:
 
 ---
 
-## Step 3 — `POST /auth/register`
+## Step 3 — Public registration (split: client vs plumber)
 
-**Goal:** Public registration for **client** and **plumber** only.
+**Goal:** Two **different** public flows—no shared “role picker” body. **Admin** is never creatable via either route.
 
-### Request body (DTO)
+**Product rules**
+
+- **Clients:** minimal signup (**email + password** only). Account is created with **`is_email_verified = false`**. API returns a **one-time email verification token** (plus expiry) in the JSON response. **Outbound email is not implemented yet**; the token exists so the client app can show “check your email” later and so you can add `POST /auth/verify-email` + mailer in a follow-up step.
+- **Plumbers:** “**Become a plumber**” application—**email, password, full name, phone number, years of experience**. Same password/email rules as Step 2; additional field validation (length, phone format, non-negative years). Distinct route and DTOs from client registration.
+
+---
+
+### Step 3a — Prerequisite migration (schema)
+
+Add a SQLx migration **before** implementing the handlers:
+
+1. On **`users`** (all roles):
+   - `is_email_verified` **BOOLEAN** NOT NULL DEFAULT **false**.
+   - `email_verification_token_hash` **TEXT** NULL (store **only a hash** of the verification token, never the raw token at rest).
+   - `email_verification_expires_at` **TIMESTAMPTZ** NULL.
+2. Table **`plumber_profiles`** (one row per plumber user):
+   - `user_id` **UUID** PRIMARY KEY, **FK** to `users(id)` ON DELETE CASCADE.
+   - `full_name` **TEXT** NOT NULL.
+   - `phone` **TEXT** NOT NULL (normalize/strip in app; optional `CHECK` or length bound).
+   - `years_of_experience` **INTEGER** NOT NULL with **CHECK (years_of_experience >= 0)** (add a sane upper bound in app if desired).
+
+**Rust:** extend `User` / repository as needed; add `PlumberProfile` model + `PlumberProfileRepository` (or methods on `UserRepository`) for insert-after-user.
+
+---
+
+### Step 3b — `POST /auth/register/client`
+
+**Request body (DTO)**
 
 - `email` (string)
 - `password` (string)
-- `role` (string or enum): **only** `client` or `plumber`
 
-### Service rules
+**Service rules**
 
-1. Validate email and password (Step 2).
-2. Normalize email.
-3. If `role` is `admin`, reject with **403** or **400** (choose one policy and document; 403 emphasizes “forbidden”, 400 “bad request”—be consistent).
-4. If email already exists, return **409 Conflict** (registration may disclose existence; acceptable for register—**not** for login).
-5. Hash password; insert user with `is_active = true`.
-6. Return **sanitized** user DTO: `id`, `email`, `role`, `is_active`, `created_at` (and `updated_at` if desired)—**never** `password_hash`.
+1. Validate email and password (Step 2); normalize email.
+2. If email already exists → **409 Conflict**.
+3. Hash password (Step 2); insert `users` with `role = client`, `is_active = true`, **`is_email_verified = false`**.
+4. Generate a **cryptographically random** verification token (e.g. 32+ bytes); **hash** it (e.g. SHA-256 or HMAC with a server secret—document choice); store hash + **`email_verification_expires_at`** (e.g. now + 24–48h, configurable via env).
+5. Response JSON:
+   - **Sanitized user:** `id`, `email`, `role`, `is_active`, **`is_email_verified`**, `created_at`, `updated_at` (no `password_hash`).
+   - **`email_verification_token`**: raw token string **once** (client must not log it; UI may show dev-only copy in non-prod).
+   - **`email_verification_expires_at`** (ISO 8601) so the client can show countdown or disable resend until later.
 
-### Handler
+**Security:** never log the raw verification token; never return the stored hash; treat token like a secret in transit (HTTPS only in production).
 
-1. JSON extract + map validation errors to 400 with stable shape (e.g. `{ "error": "validation_error", "fields": ... }` or simple message).
-2. Call service; map domain errors to status codes.
+**Handler:** JSON 400 for validation failures (stable error shape). No admin check (route is client-only).
+
+---
+
+### Step 3c — `POST /auth/register/plumber`
+
+**Request body (DTO)**
+
+- `email` (string)
+- `password` (string)
+- `full_name` (string)
+- `phone` (string)
+- `years_of_experience` (integer, >= 0)
+
+**Service rules**
+
+1. Validate email + password (Step 2); validate **full_name** (non-empty, max length), **phone** (minimal format/length—align with frontend/mobile), **years_of_experience** (>= 0).
+2. Normalize email; normalize phone (e.g. strip spaces) consistently before store.
+3. If email already exists → **409 Conflict**.
+4. Hash password; insert `users` with `role = plumber`, `is_active = true`.
+   - **Email verification policy for plumbers (choose and document one):**
+     - **Option A:** also `is_email_verified = false` and issue the same verification token pattern as clients in this response; or
+     - **Option B:** set `is_email_verified = true` for plumbers on create and skip client-style token until you need parity.
+   - Pick one and keep **frontend/mobile** copy aligned.
+5. Insert **`plumber_profiles`** row for the new `user_id`.
+6. Response: sanitized user DTO + **plumber profile** fields (`full_name`, `phone`, `years_of_experience`) **without** password or hashes. If you return a verification token for plumbers (Option A), mirror the client response fields.
+
+**Handler:** 400 validation; 409 duplicate email.
+
+---
 
 ### Routing
 
-- Mount under `/auth` prefix: `POST /auth/register`.
+- `POST /auth/register/client`
+- `POST /auth/register/plumber`
 
-### Verification
+Do **not** expose a single `POST /auth/register` with a `role` field for end users—avoids “admin” injection and keeps contracts explicit.
 
-- Register client and plumber succeed.
-- Register admin fails.
-- Duplicate email returns 409.
-- Response body contains no hash.
+---
+
+### Follow-up (document only; not part of Step 3 minimum)
+
+- **`POST /auth/verify-email`** with body `{ "token": "..." }`: look up by hash, check expiry, set `is_email_verified = true`, clear verification columns.
+- **Login policy:** decide whether **unverified clients** may log in (e.g. allow login but gate features via `is_email_verified` from `/auth/me`) or block login until verified—document in Step 6 when implementing login.
+
+### Verification (Step 3)
+
+- [ ] Client register: 201/200 with user + **`email_verification_token`** + expiry; DB holds **hash** only; `is_email_verified` false.
+- [ ] Plumber register: success with profile fields persisted; duplicate email → 409.
+- [ ] Response bodies never include `password_hash` or verification **hash**.
+- [ ] Invalid payloads → 400; malformed JSON handled consistently (Axum may use 422—document if you keep default).
 
 ---
 
@@ -229,11 +295,12 @@ Indexes:
 2. Load user by email. If not found, fail with **generic** invalid credentials (same as wrong password).
 3. Verify password hash. On failure, same generic error (status **401**).
 4. If `!user.is_active`, reject (401 or 403—pick one; document).
-5. Generate `jti` for refresh; mint **refresh** JWT with that `jti`.
-6. Compute `token_hash` for DB; `expires_at` from refresh TTL; `create_refresh_session`.
-7. Mint **access** JWT.
-8. Build response JSON: `{ "access_token": "...", "token_type": "Bearer", "expires_in": <seconds> }` (shape can vary but keep stable).
-9. Set **Set-Cookie** header for refresh token:
+5. **Unverified email (optional policy):** If `!user.is_email_verified`, either allow login and let `/auth/me` drive UI gating, or reject with the **same generic 401** as bad credentials, or a distinct **403** with a stable code like `email_not_verified`—**pick one** and align with frontend/mobile; document here when implementing Step 6.
+6. Generate `jti` for refresh; mint **refresh** JWT with that `jti`.
+7. Compute `token_hash` for DB; `expires_at` from refresh TTL; `create_refresh_session`.
+8. Mint **access** JWT.
+9. Build response JSON: `{ "access_token": "...", "token_type": "Bearer", "expires_in": <seconds> }` (shape can vary but keep stable).
+10. Set **Set-Cookie** header for refresh token:
    - `HttpOnly`
    - `Path` (e.g. `/auth` or `/`—if path too narrow, refresh route must match)
    - `Max-Age` or `Expires` aligned with refresh TTL
@@ -379,7 +446,7 @@ Implement composable checks (functions or tower layers) such as:
 
 1. Parse `user_id` from auth context.
 2. `find_by_id`; if missing, **404** (rare if token valid).
-3. Return DTO: `id`, `email`, `role`, `is_active`, `created_at` (and `updated_at` if desired). **No** `password_hash`, no refresh data.
+3. Return DTO: `id`, `email`, `role`, `is_active`, **`is_email_verified`**, `created_at` (and `updated_at` if desired). If `role` is **plumber**, include **profile** (`full_name`, `phone`, `years_of_experience`) from `plumber_profiles` (or `null`/omit for non-plumbers). **No** `password_hash`, no verification secrets, no refresh data.
 
 ### Verification
 
@@ -390,8 +457,8 @@ Implement composable checks (functions or tower layers) such as:
 ## Final API checklist (before frontend/mobile)
 
 - [ ] Neon branch (or project) chosen; `DATABASE_URL` uses **pooled** host for the running API; migrations tested (direct URL if pooler blocks DDL).
-- [ ] Migrations applied for `users` and `refresh_tokens`.
-- [ ] Register restricts roles to client/plumber.
+- [ ] Migrations applied for `users`, **`plumber_profiles`**, email verification columns, and `refresh_tokens`.
+- [ ] **`POST /auth/register/client`** and **`POST /auth/register/plumber`** implemented per Step 3; no public admin creation.
 - [ ] Login returns generic error for bad credentials.
 - [ ] Refresh rotates session and cookie.
 - [ ] Logout and logout-all behave as specified.
@@ -405,7 +472,9 @@ Implement composable checks (functions or tower layers) such as:
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | `/auth/register` | No | Register client/plumber |
+| POST | `/auth/register/client` | No | Register client (email + password); returns email verification token |
+| POST | `/auth/register/plumber` | No | Become plumber (email, password, full name, phone, years experience) |
+| POST | `/auth/verify-email` | No | (Follow-up) Consume email verification token |
 | POST | `/auth/login` | No | Login; set refresh cookie |
 | POST | `/auth/refresh` | Cookie | Rotate refresh; new access |
 | POST | `/auth/logout` | Optional cookie | Revoke session; clear cookie |
