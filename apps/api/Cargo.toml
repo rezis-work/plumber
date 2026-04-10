@@ -11,11 +11,15 @@ name = "api"
 path = "src/main.rs"
 
 [dependencies]
+argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
+password-hash = "0.5"
+rand_core = { version = "0.6", features = ["std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+thiserror = "2"
 sqlx = { version = "0.8", features = [
     "runtime-tokio",
     "postgres",
