@@ -1,0 +1,21 @@
+{
+  "name": "plumber-platform",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:mobile": "turbo run dev --filter=mobile",
+    "build:web": "turbo run build --filter=web",
+    "build:mobile": "turbo run build --filter=mobile",
+    "build:api": "cd apps/api && cargo build",
+    "test:api": "cd apps/api && cargo test"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  }
+}
