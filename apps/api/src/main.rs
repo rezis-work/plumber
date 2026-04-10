@@ -3,7 +3,7 @@ use std::time::Duration;
 use api::modules::auth::auth_routes;
 use api::modules::auth::{EmailVerificationConfig, JwtConfig, PasswordConfig};
 use api::AppState;
-use api::modules::users::UserRepository;
+use api::modules::users::{RefreshTokenRepository, UserRepository};
 use axum::{routing::get, Router};
 use sqlx::postgres::PgPoolOptions;
 
@@ -32,6 +32,7 @@ async fn main() {
     let state = AppState {
         pool: pool.clone(),
         users: UserRepository::new(pool.clone()),
+        refresh_tokens: RefreshTokenRepository::new(pool.clone()),
         password_config: PasswordConfig::from_env(),
         email_verification: EmailVerificationConfig::from_env(),
         jwt_config: JwtConfig::from_env(),

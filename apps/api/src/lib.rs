@@ -1,10 +1,14 @@
 pub mod modules;
 
 pub use modules::auth::{
-    hash_password, normalize_email, validate_password_policy, verify_password, AuthError,
-    AuthJwtClaims, EmailVerificationConfig, JwtConfig, JwtError, PasswordConfig, TokenType,
+    hash_password, hash_refresh_jwt_for_storage, normalize_email, validate_password_policy,
+    verify_password, AuthError, AuthJwtClaims, EmailVerificationConfig, JwtConfig, JwtError,
+    PasswordConfig, TokenType,
 };
-pub use modules::users::{Role, User, UserRepository};
+pub use modules::users::{
+    CreateRefreshSessionParams, RefreshTokenRecord, RefreshTokenRepository, Role, User,
+    UserRepository,
+};
 
 use sqlx::PgPool;
 
@@ -15,4 +19,5 @@ pub struct AppState {
     pub password_config: PasswordConfig,
     pub email_verification: EmailVerificationConfig,
     pub jwt_config: JwtConfig,
+    pub refresh_tokens: RefreshTokenRepository,
 }

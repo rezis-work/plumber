@@ -41,3 +41,22 @@ pub struct PlumberProfile {
     pub phone: String,
     pub years_of_experience: i32,
 }
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct RefreshTokenRecord {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub jti: String,
+    pub token_hash: String,
+    pub expires_at: DateTime<Utc>,
+    pub revoked_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug)]
+pub struct CreateRefreshSessionParams<'a> {
+    pub user_id: Uuid,
+    pub jti: &'a str,
+    pub token_hash: &'a str,
+    pub expires_at: DateTime<Utc>,
+}

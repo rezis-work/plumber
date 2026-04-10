@@ -179,13 +179,14 @@ mod tests {
     use crate::modules::auth::passwords::PasswordConfig;
     use crate::modules::auth::service_token::JwtConfig;
     use crate::modules::auth::verification::EmailVerificationConfig;
-    use crate::modules::users::UserRepository;
+    use crate::modules::users::{RefreshTokenRepository, UserRepository};
     use sqlx::PgPool;
 
     fn test_app_state(pool: PgPool) -> AppState {
         AppState {
             pool: pool.clone(),
-            users: UserRepository::new(pool),
+            users: UserRepository::new(pool.clone()),
+            refresh_tokens: RefreshTokenRepository::new(pool.clone()),
             password_config: PasswordConfig::from_env(),
             email_verification: EmailVerificationConfig {
                 secret: "integration-test-hmac-key".to_string(),
