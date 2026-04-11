@@ -321,6 +321,8 @@ Document limitations if SSR cannot see httpOnly refresh JWT.
 
 1. Production: HTTPS only; `Secure` cookies on API.
 
+**Status (web MVP):** **E1** — **Content-Security-Policy** (and related) headers are **not** set by the SvelteKit app yet; add at **adapter/host** or **`hooks.server.ts`** for production hardening; prefer avoiding new inline scripts. **E2** — **SameSite** / cross-origin cookie **`POST`** behavior is covered in [ADR 001 — CORS and cookies](./adr_001_cors_and_cookies.md); refresh cookie is **httpOnly** on **`/auth`**. **E3** — **HTTPS** and **`Secure`** cookies are enforced via **API** deployment config, not only the frontend repo.
+
 ---
 
 ## Phase F — Testing and handoff
@@ -337,18 +339,20 @@ Document limitations if SSR cannot see httpOnly refresh JWT.
 1. Add `.env.example` entries for API URL.
 2. Document known dev proxy setup (e.g. Vite proxy to API) if used.
 
+**Status:** [`apps/web/.env.example`](../../apps/web/.env.example) documents **`PUBLIC_API_URL`** (optional; empty = same-origin `/auth/...`). Dev proxy: [`apps/web/vite.config.ts`](../../apps/web/vite.config.ts) (`/auth` → API); see also [ADR 001](./adr_001_cors_and_cookies.md). **F1** remains a **manual** regression script for humans before release.
+
 ---
 
 ## Frontend deliverables checklist
 
-- [ ] Configured API base URL and credentials mode for cookie endpoints.
+- [x] Configured API base URL and credentials mode for cookie endpoints ([`publicOrigin.ts`](../../apps/web/src/lib/api/publicOrigin.ts), [`client.ts`](../../apps/web/src/lib/api/client.ts) defaults, `.env.example`, proxy).
 - [x] **C3:** Bootstrap session on full load (silent refresh + `/auth/me` when no in-memory access token; see Step C3 above).
 - [x] **C4:** Bearer on protected calls + 401 → one refresh + retry; clear session + redirect to login if refresh fails (see Step C4 above).
 - [x] **C5:** Logout — `POST /auth/logout`, clear session, redirect public (see Step C5 above).
 - [x] **C6:** Logout everywhere — `POST /auth/logout-all`, clear session, redirect login (see Step C6 above).
-- [ ] **Separate** client signup vs **become plumber** flows (routes + forms + API calls).
-- [ ] Client post-signup **email verification** UX; dev-only handling of verification token until email is sent server-side.
+- [x] **Separate** client signup vs **become plumber** flows (routes + forms + API calls): [`(guest)/register`](../../apps/web/src/routes/(guest)/register/+page.svelte), [`(guest)/register/plumber`](../../apps/web/src/routes/(guest)/register/plumber/+page.svelte).
+- [x] Client post-signup **email verification** UX; dev token surfaced when API returns it: [`(guest)/verify-email`](../../apps/web/src/routes/(guest)/verify-email/+page.svelte).
 - [x] Login/logout flows wired with correct error messaging policy (login/register per Phase C; logout C5/C6 in nav).
 - [x] Access token lifecycle with refresh-on-401 (or equivalent); see Step C4.
 - [x] Protected routes and role-based redirects; symmetric guest vs protected guards; role profiles and `/forbidden` (Phase D above).
-- [ ] No secrets in client bundle; no password/token logging in production.
+- [x] No secrets in client bundle; no password/token logging in production (only **`PUBLIC_`** in `.env.example`; [`client.ts`](../../apps/web/src/lib/api/client.ts) documents no token/password logging; avoid adding `console.log` around auth payloads).
