@@ -4,8 +4,9 @@ use axum::{extract::State, http::StatusCode, Json};
 
 use crate::AppState;
 
+use super::auth_user::AuthUser;
 use super::dto::{
-    LoginRequest, RegisterClientRequest, RegisterClientResponse, RegisterPlumberRequest,
+    LoginRequest, MeResponse, RegisterClientRequest, RegisterClientResponse, RegisterPlumberRequest,
     RegisterPlumberResponse,
 };
 use super::login_error::LoginError;
@@ -47,4 +48,11 @@ pub async fn login(
     let mut res = (StatusCode::OK, Json(response)).into_response();
     res.headers_mut().append(header::SET_COOKIE, cookie_header);
     Ok(res)
+}
+
+pub async fn me(AuthUser(ctx): AuthUser) -> Json<MeResponse> {
+    Json(MeResponse {
+        user_id: ctx.user_id,
+        role: ctx.role,
+    })
 }

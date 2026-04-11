@@ -41,7 +41,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health))
-        .nest("/auth", auth_routes())
+        .nest("/auth", auth_routes(state.clone()))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")

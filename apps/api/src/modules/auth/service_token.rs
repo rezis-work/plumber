@@ -161,7 +161,7 @@ impl JwtConfig {
     }
 
     #[cfg(test)]
-    fn test_config() -> Self {
+    pub(crate) fn test_config() -> Self {
         Self {
             access_secret: "test-access-secret-key-bytes".to_string(),
             refresh_secret: "test-refresh-secret-other".to_string(),

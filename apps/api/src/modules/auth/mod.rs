@@ -1,9 +1,13 @@
+pub mod auth_context;
+pub mod auth_unauthorized;
+pub mod auth_user;
 pub mod claims;
 pub mod cookie_config;
 pub mod dto;
 pub mod error;
 pub mod handler;
 pub mod login_error;
+pub mod middleware_access;
 pub mod passwords;
 pub mod refresh_token_hash;
 pub mod register_error;
@@ -13,6 +17,7 @@ pub mod service;
 pub mod service_token;
 pub mod verification;
 
+pub use auth_context::AuthContext;
 pub use claims::{AuthJwtClaims, TokenType};
 pub use cookie_config::CookieConfig;
 pub use error::AuthError;

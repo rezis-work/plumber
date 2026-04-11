@@ -34,6 +34,7 @@ dependencies = [
  "dotenvy",
  "hex",
  "hmac",
+ "http-body-util",
  "jsonwebtoken",
  "password-hash",
  "rand_core",
@@ -43,6 +44,7 @@ dependencies = [
  "sqlx",
  "thiserror",
  "tokio",
+ "tower",
  "uuid",
 ]
 

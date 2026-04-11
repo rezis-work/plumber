@@ -2,8 +2,8 @@ pub mod modules;
 
 pub use modules::auth::{
     hash_password, hash_refresh_jwt_for_storage, normalize_email, validate_password_policy,
-    verify_password, AuthError, AuthJwtClaims, CookieConfig, EmailVerificationConfig, JwtConfig,
-    JwtError, PasswordConfig, TokenType,
+    verify_password, AuthContext, AuthError, AuthJwtClaims, CookieConfig, EmailVerificationConfig,
+    JwtConfig, JwtError, PasswordConfig, TokenType,
 };
 pub use modules::users::{
     CreateRefreshSessionParams, RefreshTokenRecord, RefreshTokenRepository, Role, User,

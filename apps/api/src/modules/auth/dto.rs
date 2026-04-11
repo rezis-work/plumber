@@ -17,6 +17,12 @@ pub struct LoginResponse {
     pub expires_in: u64,
 }
 
+#[derive(Debug, Serialize)]
+pub struct MeResponse {
+    pub user_id: Uuid,
+    pub role: Role,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct RegisterClientRequest {
     pub email: String,
