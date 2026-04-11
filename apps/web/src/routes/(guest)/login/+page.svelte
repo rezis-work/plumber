@@ -4,7 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { ApiError, authLogin } from '$lib/api/client';
-	import { setSessionFromLogin } from '$lib/auth/session.svelte';
+	import { profilePathForRole } from '$lib/auth/profilePaths';
+	import { session, setSessionFromLogin } from '$lib/auth/session.svelte';
 	import { validateEmailInput, validatePasswordInput } from '$lib/auth/validation';
 
 	let email = $state('');
@@ -45,7 +46,11 @@
 				password
 			});
 			await setSessionFromLogin(loginResponse);
-			await goto(`${base}/`);
+			if (session.user) {
+				await goto(`${base}${profilePathForRole(session.user.role)}`);
+			} else {
+				await goto(`${base}/`);
+			}
 		} catch (err) {
 			if (err instanceof ApiError) {
 				if (err.status === 401) {

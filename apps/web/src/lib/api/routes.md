@@ -8,6 +8,8 @@ Base path: `/auth` on the Rust API (default **http://127.0.0.1:3001**). With the
 
 **Logout (browser):** [`logout.ts`](../../lib/auth/logout.ts) — **`logoutFromApp`** (`POST /auth/logout` with credentials, **`clearSession`**, **`goto`** home) and **`logoutEverywhere`** (`POST /auth/logout-all` with Bearer + credentials when `session.accessToken` is set, **`clearSession`**, **`goto`** login). Marketing nav: [`LandingNav.svelte`](../../lib/marketing/LandingNav.svelte).
 
+**Phase D (routes):** Guest-only subtree **`(guest)/`** (landing, login, register, verify-email) vs **`(protected)/`** (`/client/profile`, `/plumber/profile`, `/admin/profile`). Helpers: [`profilePaths.ts`](../../lib/auth/profilePaths.ts). See [implementation doc](../../../../docs/implementation_001_auth/implementation_001_auth_frontend.md) Phase D.
+
 | Method | Path | Notes |
 |--------|------|--------|
 | `POST` | `/auth/register/client` | JSON `{ email, password }` — see `authRegisterClient` in [`client.ts`](./client.ts) |

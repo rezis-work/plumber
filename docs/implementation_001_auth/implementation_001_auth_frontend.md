@@ -284,15 +284,23 @@ Typical routes: `/login`, `/sign-in`, or similar.
 
 Document limitations if SSR cannot see httpOnly refresh JWT.
 
+**Implemented (SvelteKit web):** Route groups **`(guest)/`** and **`(protected)/`** under [`apps/web/src/routes/`](../../apps/web/src/routes/). Both use **`export const ssr = false`** in **`+layout.ts`** so session/hydration guards run client-only (httpOnly refresh not available to SSR). **`(protected)/+layout.svelte`**: while **`session.hydrating`** show loading; then if missing **`session.user`** or **`session.accessToken`**, **`goto`** [`/login`](../../apps/web/src/routes/(guest)/login/+page.svelte). **`(guest)/+layout.svelte`**: same hydration awareness; if authenticated, **`goto`** role profile via [`profilePaths.ts`](../../apps/web/src/lib/auth/profilePaths.ts) (covers **`/`**, **`/login`**, **`/register`**, **`/verify-email`**). Minimal signed-in chrome: [`AppShellNav.svelte`](../../apps/web/src/lib/account/AppShellNav.svelte).
+
 ### Step D2 — Role-based UI
 
 1. Hide navigation entries (client vs plumber vs admin) using `role` from `/auth/me`.
 2. Do not rely on hidden buttons alone for security; API must still enforce RBAC.
 
+**Implemented:** Profile URLs are role-segmented (**`/client/profile`**, **`/plumber/profile`**, **`/admin/profile`**); [`AppShellNav`](../../apps/web/src/lib/account/AppShellNav.svelte) links to the current user’s profile. Marketing [`LandingNav`](../../apps/web/src/lib/marketing/LandingNav.svelte) remains on guest landing only (logged-in users are redirected off guest routes).
+
 ### Step D3 — Admin-only and plumber-only pages
 
 1. Add route segments e.g. `/admin/...`, `/plumber/...`.
 2. On navigation, if `role` insufficient, redirect to **403** page or home with message.
+
+**Implemented:** [`(protected)/client/+layout.svelte`](../../apps/web/src/routes/(protected)/client/+layout.svelte), [`plumber/+layout.svelte`](../../apps/web/src/routes/(protected)/plumber/+layout.svelte), [`admin/+layout.svelte`](../../apps/web/src/routes/(protected)/admin/+layout.svelte) send wrong **`role`** to **`/forbidden`**. Public [`forbidden/+page.svelte`](../../apps/web/src/routes/forbidden/+page.svelte) (access denied copy; link to profile if signed in, else login + home).
+
+**Profiles:** Each **`profile/+page.svelte`** calls **`GET /auth/me`** via [`apiRequestAuthenticated`](../../apps/web/src/lib/api/authenticatedRequest.ts), updates **`session.user`**, and renders [`ProfileMePanel.svelte`](../../apps/web/src/lib/account/ProfileMePanel.svelte) (account fields, plumber **`profile`** when present, **Log out** / **Log out everywhere** via [`logout.ts`](../../apps/web/src/lib/auth/logout.ts)). Post-login redirect: [`(guest)/login/+page.svelte`](../../apps/web/src/routes/(guest)/login/+page.svelte) **`goto`** role profile.
 
 ---
 
@@ -342,5 +350,5 @@ Document limitations if SSR cannot see httpOnly refresh JWT.
 - [ ] Client post-signup **email verification** UX; dev-only handling of verification token until email is sent server-side.
 - [x] Login/logout flows wired with correct error messaging policy (login/register per Phase C; logout C5/C6 in nav).
 - [x] Access token lifecycle with refresh-on-401 (or equivalent); see Step C4.
-- [ ] Protected routes and role-based redirects.
+- [x] Protected routes and role-based redirects; symmetric guest vs protected guards; role profiles and `/forbidden` (Phase D above).
 - [ ] No secrets in client bundle; no password/token logging in production.
