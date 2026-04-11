@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fixavon | Plumber Registration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#dce9ff",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#cbdbf5",
+                    "background": "#f8f9ff",
+                    "surface-container-highest": "#d3e4fe",
+                    "inverse-surface": "#213145",
+                    "primary-fixed": "#dae1ff",
+                    "on-surface-variant": "#424656",
+                    "on-secondary-container": "#007261",
+                    "outline": "#727687",
+                    "on-primary-container": "#f8f7ff",
+                    "on-primary-fixed-variant": "#003fa4",
+                    "on-error-container": "#93000a",
+                    "secondary": "#006b5c",
+                    "surface-variant": "#d3e4fe",
+                    "primary-container": "#0066ff",
+                    "on-primary-fixed": "#001849",
+                    "on-secondary-fixed": "#00201a",
+                    "primary": "#0050cb",
+                    "surface-bright": "#f8f9ff",
+                    "on-tertiary-fixed-variant": "#005228",
+                    "error-container": "#ffdad6",
+                    "surface-tint": "#0054d6",
+                    "surface": "#f8f9ff",
+                    "on-tertiary-container": "#e2ffe4",
+                    "tertiary-container": "#008343",
+                    "primary-fixed-dim": "#b3c5ff",
+                    "outline-variant": "#c2c6d8",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-container": "#e5eeff",
+                    "tertiary-fixed": "#6bfe9c",
+                    "tertiary-fixed-dim": "#4ae183",
+                    "secondary-container": "#68fadd",
+                    "on-background": "#0b1c30",
+                    "on-secondary": "#ffffff",
+                    "on-surface": "#0b1c30",
+                    "tertiary": "#006733",
+                    "inverse-primary": "#b3c5ff",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#44ddc1",
+                    "on-secondary-fixed-variant": "#005145",
+                    "surface-container-low": "#eff4ff",
+                    "on-tertiary-fixed": "#00210c",
+                    "secondary-fixed": "#68fadd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+<!-- Header / TopNavBar (Minimized for focused journey as per shell visibility rule) -->
+<nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 h-20 bg-white/70 backdrop-blur-xl">
+<div class="text-2xl font-black text-blue-800 tracking-tighter">Fixavon</div>
+<div class="flex items-center gap-6">
+<span class="text-slate-600 font-medium text-sm hidden md:block">Already have an account?</span>
+<a class="text-primary font-bold hover:underline transition-all" href="#">Login</a>
+</div>
+</nav>
+<main class="min-h-screen flex flex-col md:flex-row pt-20">
+<!-- Left Side: Professional Panel -->
+<section class="relative w-full md:w-5/12 lg:w-4/12 flex flex-col justify-center px-8 py-16 md:px-12 lg:px-16 overflow-hidden">
+<!-- Background Image with Tonal Overlay -->
+<div class="absolute inset-0 -z-10 bg-primary">
+<img alt="Professional plumber working" class="w-full h-full object-cover opacity-20" data-alt="Close-up of professional plumbing tools and copper pipes on a clean workbench with cinematic blue lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRxbiJbje-psd1RD8RpCdsTXSdbSqY0IeLI2f8ckpZy1HVFrB9luAY-hLC6VVTTkv-K7dHSDiUkkqifqoz6YcKYKsk9Iq4GJixlrVNpv6SbpSKZr5NGNZJFV0-jk0RQTMu05Ntbl6jSRQU8AjL1vJ5Pi-AM0G7KfdZOr_pnoW8Iwkr1yPstKa_s-_z1FYngjMUYltfqQy_pS_htLrRfuhbSTzVMJS4LTuqi4PlzCUMfum4f8E8xauTbz0z4vSxk-ZSYlAV7eJdhPs"/>
+<div class="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-blue-900"></div>
+</div>
+<div class="max-w-md">
+<span class="inline-block px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-xs font-bold tracking-widest uppercase mb-6">
+                    Professional Network
+                </span>
+<h1 class="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter mb-8">
+                    Grow Your Business with Fixavon
+                </h1>
+<ul class="space-y-8">
+<li class="flex items-start gap-4">
+<div class="flex-shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-lg leading-none">Get more customer requests</h3>
+<p class="text-blue-100/70 text-sm mt-2">Access a steady stream of verified leads in Tbilisi area daily.</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<div class="flex-shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md">
+<span class="material-symbols-outlined" data-icon="dashboard_customize">dashboard_customize</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-lg leading-none">Manage work efficiently</h3>
+<p class="text-blue-100/70 text-sm mt-2">Our digital tools handle scheduling and invoicing for you.</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<div class="flex-shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md">
+<span class="material-symbols-outlined" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-lg leading-none">Build ratings and trust</h3>
+<p class="text-blue-100/70 text-sm mt-2">Showcase your expertise with customer reviews and certificates.</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<div class="flex-shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-lg leading-none">Grow your income</h3>
+<p class="text-blue-100/70 text-sm mt-2">Set your own rates and earn more with high-priority service calls.</p>
+</div>
+</li>
+</ul>
+<div class="mt-16 pt-8 border-t border-white/10">
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<img alt="Expert" class="w-8 h-8 rounded-full border-2 border-primary" data-alt="Portrait of a smiling professional tradesman in a blue uniform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV1GLn4YevzHrPg8fFJxk7ne20fOdkGihVltcLyEPSqEhU7666LKRlPhg-Qh1WYlKF314laW38FDwUQdwP_4xYYxJAPIQi1KK39Fetf9uxogVptGqkgIDBL-mduCFBDO73izOb77Ftbk2mP2NjY5JG5clZ43UWpF6OSGj5NYTVWjlZSW0TqlT2Mzgmw0PoocfqVX_OcBvjZ6NNT9Y3MUJaaq-geMcpG8aM0O4961AXEaV6MskZC1U6BfvLjhW-tJHglx36ppBI98Y"/>
+<img alt="Expert" class="w-8 h-8 rounded-full border-2 border-primary" data-alt="Portrait of a professional man in work clothes smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDA7lZEF-cVhnt2iYJxrmK3qFg95kOG6ucwB3SiUr3GXpP-e8sGNyVOx81Y7DE3LtcjnoJD-lny03hEZ-7zWO-HZ05hJM1qhru_XxOjGGiZAKmmoMmoRhsO6eCzDEjGtMe497YkmUq3ApnpYWxBM9kHzR1Yt0Bgwm9EDTcOgglLZU5XBDu4YuAxMgOxDWHWzKl3xkH3BIqGal9qcjYCAdkWEGBfXorfTxTnyLlPPrbmw4cfWT4VGyI8eTHSnUzI7_0-AloOA0p-AUI"/>
+</div>
+<p class="text-blue-100 text-xs font-medium">Join 200+ top plumbers in Tbilisi</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Side: Registration Form -->
+<section class="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-20 bg-surface">
+<div class="w-full max-w-2xl">
+<!-- Form Card -->
+<div class="bg-surface-container-lowest p-8 md:p-12 rounded-xl shadow-[0px_20px_40px_rgba(11,28,48,0.06)] border border-outline-variant/10">
+<div class="mb-10">
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight">Join as a Plumber</h2>
+<p class="text-on-surface-variant mt-2">Connect with customers looking for reliable plumbing services in Tbilisi.</p>
+</div>
+<form class="space-y-6">
+<!-- Full Name -->
+<div class="group">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Full Name</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all outline-none" placeholder="Gigi Beridze" type="text"/>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Email -->
+<div class="group">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Email Address</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all outline-none" placeholder="name@example.com" type="email"/>
+</div>
+<!-- Phone Number with Picker Mockup -->
+<div class="group">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Phone Number</label>
+<div class="flex gap-2">
+<div class="flex items-center gap-2 bg-surface-container-low px-3 py-3.5 rounded-xl cursor-pointer hover:bg-surface-container-high transition-colors">
+<span class="text-lg">🇬🇪</span>
+<span class="text-sm font-semibold">+995</span>
+</div>
+<input class="flex-1 bg-surface-container-low border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all outline-none" placeholder="555 123 456" type="tel"/>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Years of Experience -->
+<div class="group">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Years of Experience</label>
+<div class="relative">
+<select class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all outline-none appearance-none cursor-pointer">
+<option disabled="" selected="" value="">Select experience</option>
+<option value="1-2">1-2 years</option>
+<option value="3-5">3-5 years</option>
+<option value="5-10">5-10 years</option>
+<option value="10+">10+ years</option>
+</select>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Specialty -->
+<div class="group">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Primary Specialty</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all outline-none" placeholder="Pipe repair, Installation..." type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Password -->
+<div class="group">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Password</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all outline-none" placeholder="••••••••" type="password"/>
+</div>
+<!-- Confirm Password -->
+<div class="group">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Confirm Password</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-primary/30 focus:bg-white transition-all outline-none" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="flex items-center gap-3 pt-2">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary bg-surface-container-low" id="terms" type="checkbox"/>
+<label class="text-sm text-on-surface-variant" for="terms">
+                                I agree to the <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> and <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>.
+                            </label>
+</div>
+<!-- CTA Button -->
+<button class="w-full bg-primary hover:bg-blue-700 text-white font-extrabold text-lg py-5 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-[0.98]">
+                            Create Plumber Account
+                        </button>
+<div class="text-center pt-4 border-t border-outline-variant/10">
+<p class="text-on-surface-variant text-sm">
+                                Not a professional? 
+                                <a class="text-secondary font-bold hover:underline ml-1" href="#">Register as a Client</a>
+</p>
+</div>
+</form>
+</div>
+<!-- Small Trust Indicator Component -->
+<div class="mt-8 flex items-center justify-center gap-2 py-4 px-6 rounded-full bg-white/50 backdrop-blur-sm self-center">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<p class="text-xs font-medium text-on-surface-variant">32 plumbers registered in Tbilisi this week</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer (Minimal for transaction page) -->
+<footer class="w-full py-8 px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-50 border-t border-slate-100">
+<div class="text-sm font-medium text-slate-500">
+            © 2024 Fixavon Tbilisi. Professional Plumbing Solutions.
+        </div>
+<div class="flex gap-6">
+<a class="text-xs text-slate-400 hover:text-blue-500 transition-colors" href="#">Privacy Policy</a>
+<a class="text-xs text-slate-400 hover:text-blue-500 transition-colors" href="#">Trust &amp; Safety</a>
+<a class="text-xs text-slate-400 hover:text-blue-500 transition-colors" href="#">Contact Support</a>
+</div>
+</footer>
+</body></html>

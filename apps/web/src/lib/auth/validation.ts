@@ -53,3 +53,55 @@ export function validatePasswordInput(plain: string): string | null {
 	}
 	return null;
 }
+
+/** Mirrors `registration.rs` (`FULL_NAME_MAX`). */
+export const FULL_NAME_MAX_LENGTH = 200;
+
+/** Mirrors `registration.rs` phone length and digit checks. */
+export const PHONE_COLLAPSED_MIN_LENGTH = 8;
+export const PHONE_COLLAPSED_MAX_LENGTH = 32;
+
+/** Mirrors `registration.rs` `YEARS_MAX`. */
+export const YEARS_EXPERIENCE_MAX = 80;
+
+export function validateFullNameInput(raw: string): string | null {
+	const s = raw.trim();
+	if (!s) {
+		return 'Full name is required.';
+	}
+	if (s.length > FULL_NAME_MAX_LENGTH) {
+		return 'Full name is too long.';
+	}
+	return null;
+}
+
+/** Collapse whitespace like API `normalize_and_validate_phone` (non-whitespace chars only). */
+export function collapsePhoneWhitespace(raw: string): string {
+	return [...raw].filter((c) => !/\s/u.test(c)).join('');
+}
+
+export function validatePhoneInput(raw: string): string | null {
+	const collapsed = collapsePhoneWhitespace(raw);
+	const len = collapsed.length;
+	if (len < PHONE_COLLAPSED_MIN_LENGTH || len > PHONE_COLLAPSED_MAX_LENGTH) {
+		return 'Enter a valid phone number (at least 8 digits).';
+	}
+	const digitCount = [...collapsed].filter((c) => c >= '0' && c <= '9').length;
+	if (digitCount < 8) {
+		return 'Enter a valid phone number (at least 8 digits).';
+	}
+	return null;
+}
+
+export function validateYearsOfExperienceInput(years: number): string | null {
+	if (!Number.isFinite(years) || !Number.isInteger(years)) {
+		return 'Years of experience must be a whole number.';
+	}
+	if (years < 0) {
+		return 'Years of experience cannot be negative.';
+	}
+	if (years > YEARS_EXPERIENCE_MAX) {
+		return `Years of experience must be at most ${YEARS_EXPERIENCE_MAX}.`;
+	}
+	return null;
+}

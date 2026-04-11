@@ -1,61 +1,920 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { ApiError, authRegisterPlumber } from '$lib/api/client';
+	import {
+		validateEmailInput,
+		validateFullNameInput,
+		validatePasswordInput,
+		validatePhoneInput,
+		validateYearsOfExperienceInput
+	} from '$lib/auth/validation';
+
+	let fullName = $state('');
+	let email = $state('');
+	let phone = $state('');
+	let yearsExperience = $state(0);
+	let password = $state('');
+	let confirmPassword = $state('');
+	let termsAccepted = $state(false);
+	let clientError = $state<string | null>(null);
+	let submitting = $state(false);
+	let succeeded = $state(false);
+
+	async function onsubmit(e: Event) {
+		e.preventDefault();
+		clientError = null;
+
+		const nameErr = validateFullNameInput(fullName);
+		if (nameErr) {
+			clientError = nameErr;
+			return;
+		}
+
+		const emailResult = validateEmailInput(email);
+		if (!emailResult.ok) {
+			clientError = emailResult.message;
+			return;
+		}
+
+		const phoneErr = validatePhoneInput(phone);
+		if (phoneErr) {
+			clientError = phoneErr;
+			return;
+		}
+
+		const yearsErr = validateYearsOfExperienceInput(yearsExperience);
+		if (yearsErr) {
+			clientError = yearsErr;
+			return;
+		}
+
+		const pwErr = validatePasswordInput(password);
+		if (pwErr) {
+			clientError = pwErr;
+			return;
+		}
+
+		if (password !== confirmPassword) {
+			clientError = 'Passwords do not match.';
+			return;
+		}
+
+		if (!termsAccepted) {
+			clientError = 'Please accept the terms to continue.';
+			return;
+		}
+
+		submitting = true;
+		try {
+			await authRegisterPlumber({
+				email: emailResult.email,
+				password,
+				full_name: fullName.trim(),
+				phone,
+				years_of_experience: yearsExperience
+			});
+			succeeded = true;
+		} catch (err) {
+			if (err instanceof ApiError) {
+				if (err.status === 409 && err.code === 'conflict') {
+					clientError = 'An account with this email already exists.';
+				} else if (err.status === 400 && err.code === 'validation_error') {
+					clientError = err.message ?? 'Please check your input and try again.';
+				} else {
+					clientError = 'Something went wrong. Please try again.';
+				}
+			} else {
+				clientError = 'Network error. Check your connection and try again.';
+			}
+		} finally {
+			submitting = false;
+		}
+	}
 </script>
 
 <svelte:head>
 	<title>Become a plumber | Fixavon</title>
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
+	/>
 </svelte:head>
 
-<main class="placeholder">
-	<p class="placeholder__eyebrow">Phase C</p>
-	<h1 class="placeholder__title">Plumber registration</h1>
-	<p class="placeholder__text">
-		This route is reserved for <strong>Plumber Registration (C1b)</strong>. Application flow will ship in Phase C.
-	</p>
-	<p class="placeholder__links">
-		<a href="{base}/">← Home</a>
-		·
-		<a href="{base}/register">Client sign up</a>
-	</p>
-</main>
+<div class="page">
+	<section class="hero" aria-labelledby="hero-heading">
+		<div class="hero__bg">
+			<img
+				class="hero__img"
+				src="{base}/register/plumber/hero-plumber.png"
+				alt=""
+				width="800"
+				height="1200"
+			/>
+			<div class="hero__overlay"></div>
+		</div>
+		<div class="hero__content">
+			<a class="hero__logo" href="{base}/">Fixavon</a>
+			<div class="hero__copy">
+				<p class="hero__eyebrow">Professional network</p>
+				<h1 id="hero-heading" class="hero__title">Grow your business with Fixavon</h1>
+				<ul class="hero__list">
+					<li class="hero__item">
+						<div class="hero__icon">
+							<span class="material-symbols-outlined">trending_up</span>
+						</div>
+						<div>
+							<p class="hero__item-title">Get more customer requests</p>
+							<p class="hero__item-meta">Verified leads across Tbilisi.</p>
+						</div>
+					</li>
+					<li class="hero__item">
+						<div class="hero__icon">
+							<span class="material-symbols-outlined">dashboard_customize</span>
+						</div>
+						<div>
+							<p class="hero__item-title">Manage work efficiently</p>
+							<p class="hero__item-meta">Scheduling and invoicing in one place.</p>
+						</div>
+					</li>
+					<li class="hero__item">
+						<div class="hero__icon">
+							<span class="material-symbols-outlined hero__icon--fill">verified_user</span>
+						</div>
+						<div>
+							<p class="hero__item-title">Build ratings and trust</p>
+							<p class="hero__item-meta">Reviews and credentials that stand out.</p>
+						</div>
+					</li>
+					<li class="hero__item">
+						<div class="hero__icon">
+							<span class="material-symbols-outlined">payments</span>
+						</div>
+						<div>
+							<p class="hero__item-title">Grow your income</p>
+							<p class="hero__item-meta">Set your rates and take priority calls.</p>
+						</div>
+					</li>
+				</ul>
+				<p class="hero__social">Join 200+ top plumbers in Tbilisi</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="panel" aria-labelledby="register-heading">
+		<div class="panel__inner">
+			{#if succeeded}
+				<div class="success-card">
+					<div class="success-card__icon" aria-hidden="true">
+						<span class="material-symbols-outlined">check_circle</span>
+					</div>
+					<h2 id="register-heading" class="success-card__title">You&apos;re registered</h2>
+					<p class="success-card__text">
+						Your plumber account is ready. Log in to start receiving jobs on Fixavon.
+					</p>
+					<div class="success-card__actions">
+						<a class="btn-primary" href="{base}/login">Log in</a>
+						<a class="btn-muted" href="{base}/">Back to home</a>
+					</div>
+					<p class="success-card__hint">
+						Looking for a household account?
+						<a href="{base}/register">Client sign up</a>
+					</p>
+				</div>
+			{:else}
+				<div class="panel__header">
+					<h2 id="register-heading" class="panel__title">Join as a plumber</h2>
+					<p class="panel__subtitle">
+						Connect with customers who need reliable plumbing in Tbilisi.
+					</p>
+				</div>
+
+				<div class="card">
+					<form class="form" onsubmit={onsubmit}>
+						{#if clientError}
+							<p class="form__error" role="alert">{clientError}</p>
+						{/if}
+
+						<div class="field">
+							<label class="field__label" for="plumb-name">Full name</label>
+							<input
+								id="plumb-name"
+								class="field__input field__input--plain"
+								type="text"
+								name="full_name"
+								autocomplete="name"
+								placeholder="Gigi Beridze"
+								bind:value={fullName}
+								disabled={submitting}
+								required
+							/>
+						</div>
+
+						<div class="field-grid">
+							<div class="field">
+								<label class="field__label" for="plumb-email">Email</label>
+								<div class="field__input-wrap">
+									<span class="material-symbols-outlined field__icon">mail</span>
+									<input
+										id="plumb-email"
+										class="field__input"
+										type="email"
+										name="email"
+										autocomplete="email"
+										placeholder="you@example.com"
+										bind:value={email}
+										disabled={submitting}
+										required
+									/>
+								</div>
+							</div>
+							<div class="field">
+								<label class="field__label" for="plumb-phone">Phone</label>
+								<div class="field__input-wrap">
+									<span class="material-symbols-outlined field__icon">call</span>
+									<input
+										id="plumb-phone"
+										class="field__input"
+										type="tel"
+										name="phone"
+										autocomplete="tel"
+										placeholder="+995 555 123 456"
+										bind:value={phone}
+										disabled={submitting}
+										required
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div class="field">
+							<label class="field__label" for="plumb-years">Years of experience</label>
+							<input
+								id="plumb-years"
+								class="field__input field__input--plain"
+								type="number"
+								name="years_of_experience"
+								min="0"
+								max="80"
+								step="1"
+								bind:value={yearsExperience}
+								disabled={submitting}
+								required
+							/>
+							<p class="field__hint">
+								<span class="material-symbols-outlined field__hint-icon">info</span>
+								Whole years, 0–80.
+							</p>
+						</div>
+
+						<div class="field-grid">
+							<div class="field">
+								<label class="field__label" for="plumb-password">Password</label>
+								<div class="field__input-wrap">
+									<span class="material-symbols-outlined field__icon">lock</span>
+									<input
+										id="plumb-password"
+										class="field__input"
+										type="password"
+										name="password"
+										autocomplete="new-password"
+										placeholder="••••••••"
+										bind:value={password}
+										disabled={submitting}
+										required
+									/>
+								</div>
+							</div>
+							<div class="field">
+								<label class="field__label" for="plumb-confirm">Confirm password</label>
+								<div class="field__input-wrap">
+									<span class="material-symbols-outlined field__icon">shield</span>
+									<input
+										id="plumb-confirm"
+										class="field__input"
+										type="password"
+										name="confirm_password"
+										autocomplete="new-password"
+										placeholder="••••••••"
+										bind:value={confirmPassword}
+										disabled={submitting}
+										required
+									/>
+								</div>
+							</div>
+						</div>
+
+						<label class="terms">
+							<input
+								class="terms__check"
+								type="checkbox"
+								bind:checked={termsAccepted}
+								disabled={submitting}
+							/>
+							<span class="terms__text">
+								I agree to the <a href="{base}/">Terms of Service</a> and
+								<a href="{base}/">Privacy Policy</a>.
+							</span>
+						</label>
+
+						<div class="form__actions">
+							<button class="btn-submit" type="submit" disabled={submitting}>
+								{submitting ? 'Creating account…' : 'Create plumber account'}
+							</button>
+						</div>
+					</form>
+				</div>
+
+				<div class="panel__footer">
+					<p class="panel__login">
+						Already have an account?
+						<a href="{base}/login">Log in</a>
+					</p>
+					<hr class="panel__rule" />
+					<a class="btn-client" href="{base}/register">
+						<span class="material-symbols-outlined">person_add</span>
+						Sign up as a client instead
+					</a>
+				</div>
+
+				<div class="legal">
+					<a href="{base}/">Terms of Service</a>
+					<a href="{base}/">Privacy Policy</a>
+					<a href="{base}/">Contact Support</a>
+				</div>
+			{/if}
+		</div>
+	</section>
+</div>
 
 <style>
-	.placeholder {
-		max-width: 32rem;
-		margin: 0 auto;
-		padding: var(--space-24) var(--space-4);
-		min-height: 60vh;
+	.page {
+		display: flex;
+		flex-direction: column;
+		min-height: 100vh;
 	}
 
-	.placeholder__eyebrow {
-		margin: 0 0 var(--space-2);
+	@media (min-width: 768px) {
+		.page {
+			flex-direction: row;
+		}
+	}
+
+	.material-symbols-outlined {
+		font-family: 'Material Symbols Outlined', sans-serif;
+		font-weight: normal;
+		font-style: normal;
+		font-size: 1.25rem;
+		line-height: 1;
+		font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+		vertical-align: middle;
+	}
+
+	.hero__icon--fill {
+		font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+	}
+
+	.hero {
+		position: relative;
+		width: 100%;
+		min-height: 22rem;
+		background: var(--color-primary);
+		color: var(--color-on-primary);
+		display: flex;
+		flex-direction: column;
+		padding: var(--space-8);
+		overflow: hidden;
+	}
+
+	@media (min-width: 768px) {
+		.hero {
+			width: 42%;
+			max-width: 28rem;
+			min-height: 100vh;
+			padding: var(--space-12) var(--space-8);
+		}
+	}
+
+	.hero__bg {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+	}
+
+	.hero__img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0.22;
+	}
+
+	.hero__overlay {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			145deg,
+			color-mix(in srgb, var(--color-primary) 92%, black) 0%,
+			color-mix(in srgb, var(--color-primary) 75%, transparent) 55%,
+			color-mix(in srgb, var(--color-primary-container) 40%, #001849) 100%
+		);
+	}
+
+	.hero__content {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		gap: var(--space-8);
+	}
+
+	.hero__logo {
+		font-size: 1.5rem;
+		font-weight: 900;
+		color: var(--color-on-primary);
+		text-decoration: none;
+		letter-spacing: -0.02em;
+	}
+
+	.hero__copy {
+		margin-top: auto;
+		max-width: 22rem;
+	}
+
+	.hero__eyebrow {
+		display: inline-block;
+		margin: 0 0 var(--space-6);
+		padding: var(--space-2) var(--space-3);
+		border-radius: 9999px;
+		background: var(--color-secondary-container);
+		color: var(--color-on-secondary-container);
+		font-size: 0.65rem;
+		font-weight: var(--font-weight-bold);
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+	}
+
+	.hero__title {
+		margin: 0 0 var(--space-8);
+		font-size: clamp(1.85rem, 4vw, 2.75rem);
+		font-weight: 900;
+		line-height: 1.05;
+		color: var(--color-on-primary);
+		letter-spacing: -0.03em;
+	}
+
+	.hero__list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-8);
+	}
+
+	.hero__item {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-4);
+	}
+
+	.hero__icon {
+		flex-shrink: 0;
+		width: 2.5rem;
+		height: 2.5rem;
+		border-radius: var(--radius-lg);
+		background: color-mix(in srgb, var(--color-on-primary) 12%, transparent);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		backdrop-filter: blur(12px);
+		color: var(--color-on-primary);
+	}
+
+	.hero__item-title {
+		margin: 0;
+		font-weight: var(--font-weight-bold);
+		font-size: var(--text-lg);
+		color: var(--color-on-primary);
+		line-height: 1.2;
+	}
+
+	.hero__item-meta {
+		margin: var(--space-2) 0 0;
 		font-size: var(--text-sm);
-		font-weight: var(--font-weight-semibold);
-		color: var(--color-primary);
+		line-height: 1.5;
+		color: var(--color-primary-fixed);
+		opacity: 0.8;
+	}
+
+	.hero__social {
+		margin: var(--space-12) 0 0;
+		padding-top: var(--space-8);
+		border-top: 1px solid color-mix(in srgb, var(--color-on-primary) 15%, transparent);
+		font-size: var(--text-sm);
+		font-weight: var(--font-weight-medium);
+		color: var(--color-primary-fixed);
+		opacity: 0.9;
+	}
+
+	.panel {
+		flex: 1;
+		background: var(--color-surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--space-8) var(--space-6);
+	}
+
+	@media (min-width: 768px) {
+		.panel {
+			padding: var(--space-12) var(--space-10) var(--space-12) var(--space-8);
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.panel {
+			padding: var(--space-16) var(--space-24);
+		}
+	}
+
+	.panel__inner {
+		width: 100%;
+		max-width: 42rem;
+	}
+
+	.panel__header {
+		margin-bottom: var(--space-10);
+		padding-bottom: var(--space-2);
+	}
+
+	.panel__title {
+		margin: 0 0 var(--space-3);
+		font-size: 1.875rem;
+		font-weight: 800;
+		color: var(--color-text);
+		letter-spacing: -0.02em;
+	}
+
+	.panel__subtitle {
+		margin: 0;
+		color: var(--color-text-muted);
+		font-weight: var(--font-weight-medium);
+	}
+
+	.card {
+		background: var(--color-surface-elevated);
+		border-radius: var(--radius-xl);
+		padding: var(--space-10) var(--space-8);
+		box-shadow: var(--shadow-ambient);
+		border: 1px solid color-mix(in srgb, var(--color-outline-variant) 35%, transparent);
+	}
+
+	@media (min-width: 768px) {
+		.card {
+			padding: var(--space-12) var(--space-10);
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.card {
+			padding: var(--space-12) var(--space-12);
+		}
+	}
+
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-8);
+	}
+
+	.form__error {
+		margin: 0;
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-md);
+		background: color-mix(in srgb, var(--color-error) 12%, transparent);
+		color: var(--color-error);
+		font-size: var(--text-sm);
+		font-weight: var(--font-weight-medium);
+	}
+
+	.field-grid {
+		display: grid;
+		gap: var(--space-8);
+	}
+
+	@media (min-width: 768px) {
+		.field-grid {
+			grid-template-columns: 1fr 1fr;
+			gap: var(--space-8) var(--space-6);
+		}
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.625rem;
+	}
+
+	.field__label {
+		font-size: 0.75rem;
+		font-weight: var(--font-weight-bold);
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
+		color: var(--color-text-muted);
+		margin-left: 0.35rem;
+		padding-bottom: 0.125rem;
 	}
 
-	.placeholder__title {
-		margin: 0 0 var(--space-4);
+	.field__input-wrap {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.field__icon {
+		position: absolute;
+		left: var(--space-4);
+		color: var(--color-outline);
+		pointer-events: none;
+	}
+
+	.field__input {
+		width: 100%;
+		min-height: 3.25rem;
+		box-sizing: border-box;
+		padding: 0.875rem 1.125rem 0.875rem 3rem;
+		border: none;
+		border-radius: var(--radius-xl);
+		background: var(--color-surface-container-low);
+		color: var(--color-text);
+		font-family: inherit;
+		font-size: var(--text-base);
+		line-height: 1.45;
+		outline: none;
+		transition:
+			background 0.15s ease,
+			box-shadow 0.15s ease;
+	}
+
+	.field__input--plain {
+		padding: 0.875rem 1.125rem;
+	}
+
+	.field__input::placeholder {
+		color: var(--color-outline);
+	}
+
+	.field__input:focus {
+		background: var(--color-surface-elevated);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+	}
+
+	.field__input:disabled {
+		opacity: 0.65;
+		cursor: not-allowed;
+	}
+
+	.field__hint {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: var(--space-2) 0 0 0.35rem;
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		line-height: 1.4;
+	}
+
+	.field__hint-icon {
+		font-size: var(--text-sm);
+		color: var(--color-outline);
+	}
+
+	.terms {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-4);
+		cursor: pointer;
+		font-size: var(--text-sm);
+		color: var(--color-text-muted);
+		line-height: 1.55;
+		padding: var(--space-4) var(--space-2) var(--space-2);
+		margin-top: var(--space-2);
+		border-radius: var(--radius-md);
+	}
+
+	.terms__check {
+		width: 1.25rem;
+		height: 1.25rem;
+		margin-top: 0.1rem;
+		accent-color: var(--color-primary);
+		flex-shrink: 0;
+	}
+
+	.terms a {
+		color: var(--color-primary);
+		font-weight: var(--font-weight-semibold);
+		text-decoration: none;
+	}
+
+	.terms a:hover {
+		text-decoration: underline;
+	}
+
+	.form__actions {
+		padding-top: var(--space-6);
+		margin-top: var(--space-2);
+	}
+
+	.btn-submit {
+		width: 100%;
+		padding: 1.125rem var(--space-6);
+		border: none;
+		border-radius: var(--radius-xl);
+		font-family: inherit;
 		font-size: var(--text-lg);
+		font-weight: 800;
+		color: var(--color-on-primary);
+		cursor: pointer;
+		background: var(--color-primary);
+		box-shadow: 0px 20px 40px color-mix(in srgb, var(--color-primary) 22%, transparent);
+		transition: transform 0.15s ease;
+	}
+
+	.btn-submit:hover:not(:disabled) {
+		background: color-mix(in srgb, var(--color-primary) 88%, black);
+	}
+
+	.btn-submit:active:not(:disabled) {
+		transform: scale(0.98);
+	}
+
+	.btn-submit:disabled {
+		opacity: 0.75;
+		cursor: not-allowed;
+	}
+
+	.panel__footer {
+		margin-top: var(--space-10);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-4);
+		text-align: center;
+	}
+
+	.panel__login {
+		margin: 0;
+		color: var(--color-text-muted);
+		font-weight: var(--font-weight-medium);
+	}
+
+	.panel__login a {
+		color: var(--color-primary);
 		font-weight: var(--font-weight-bold);
+		text-decoration: none;
+		margin-left: 0.25rem;
+	}
+
+	.panel__login a:hover {
+		text-decoration: underline;
+	}
+
+	.panel__rule {
+		width: 100%;
+		border: none;
+		border-top: 1px solid var(--color-surface-container-high);
+		margin: var(--space-2) 0;
+	}
+
+	.btn-client {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-6);
+		border-radius: 9999px;
+		background: var(--color-surface-container-low);
+		color: var(--color-primary);
+		font-weight: var(--font-weight-bold);
+		font-size: var(--text-sm);
+		text-decoration: none;
+		border: 1px solid var(--color-outline-variant);
+		transition: transform 0.15s ease;
+	}
+
+	.btn-client:hover {
+		transform: scale(1.02);
+	}
+
+	.legal {
+		margin-top: var(--space-16);
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--space-6);
+		font-size: 0.75rem;
+		color: var(--color-outline);
+		font-weight: var(--font-weight-medium);
+	}
+
+	.legal a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.legal a:hover {
+		color: var(--color-primary);
+	}
+
+	.success-card {
+		text-align: center;
+		padding: var(--space-12) var(--space-8);
+		background: var(--color-surface-elevated);
+		border-radius: var(--radius-xl);
+		box-shadow: var(--shadow-ambient);
+		border: 1px solid color-mix(in srgb, var(--color-outline-variant) 35%, transparent);
+	}
+
+	.success-card__icon {
+		width: 4rem;
+		height: 4rem;
+		margin: 0 auto var(--space-6);
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-secondary);
+	}
+
+	.success-card__icon .material-symbols-outlined {
+		font-size: 2.25rem !important;
+		font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+	}
+
+	.success-card__title {
+		margin: 0 0 var(--space-4);
+		font-size: 1.75rem;
+		font-weight: 800;
 		color: var(--color-text);
 	}
 
-	.placeholder__text {
+	.success-card__text {
 		margin: 0 0 var(--space-8);
 		color: var(--color-text-muted);
 		line-height: 1.6;
+		max-width: 26rem;
+		margin-left: auto;
+		margin-right: auto;
 	}
 
-	.placeholder__links {
-		margin: 0;
+	.success-card__actions {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		align-items: center;
+	}
+
+	.btn-primary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--space-4) var(--space-10);
+		border-radius: var(--radius-xl);
+		background: var(--color-primary);
+		color: var(--color-on-primary);
+		font-weight: var(--font-weight-bold);
+		text-decoration: none;
+		box-shadow: var(--shadow-ambient);
+	}
+
+	.btn-primary:hover {
+		background: color-mix(in srgb, var(--color-primary) 88%, black);
+	}
+
+	.btn-muted {
 		font-size: var(--text-sm);
+		color: var(--color-text-muted);
+		text-decoration: none;
+		font-weight: var(--font-weight-medium);
 	}
 
-	.placeholder__links a {
+	.btn-muted:hover {
 		color: var(--color-primary);
-		font-weight: var(--font-weight-medium);
+	}
+
+	.success-card__hint {
+		margin: var(--space-10) 0 0;
+		font-size: var(--text-sm);
+		color: var(--color-text-muted);
+	}
+
+	.success-card__hint a {
+		color: var(--color-primary);
+		font-weight: var(--font-weight-semibold);
+		text-decoration: none;
+	}
+
+	.success-card__hint a:hover {
+		text-decoration: underline;
 	}
 </style>

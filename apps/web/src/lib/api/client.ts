@@ -6,6 +6,8 @@ import type {
 	MeResponse,
 	RegisterClientRequest,
 	RegisterClientResponse,
+	RegisterPlumberRequest,
+	RegisterPlumberResponse,
 	VerifyEmailRequest,
 	VerifyEmailResponse
 } from './types';
@@ -125,6 +127,14 @@ export function authMe(accessToken: string): Promise<MeResponse> {
 
 export function authRegisterClient(body: RegisterClientRequest): Promise<RegisterClientResponse> {
 	return apiRequest<RegisterClientResponse>('/auth/register/client', {
+		method: 'POST',
+		jsonBody: body,
+		credentials: 'omit'
+	});
+}
+
+export function authRegisterPlumber(body: RegisterPlumberRequest): Promise<RegisterPlumberResponse> {
+	return apiRequest<RegisterPlumberResponse>('/auth/register/plumber', {
 		method: 'POST',
 		jsonBody: body,
 		credentials: 'omit'

@@ -37,6 +37,16 @@ Use a utility like `curl -L` to download the hosted URLs.
 1. **MCP:** `get_screen` with `name` `projects/9702559548791545108/screens/b4e85f70dda04fd18cbc2ded66367040`, plus `projectId` and `screenId`.
 2. **`curl -L`** into [`static/register/client/`](../register/client/) — see [`static/register/client/README.md`](../register/client/README.md).
 
+### Phase C1b — Plumber Registration (Fixavon)
+
+| | |
+|--|--|
+| **Screen** | **Plumber Registration - Fixavon** |
+| **Screen ID** | `2c2497ba2dee4162a6abd45a76f45ff0` |
+
+1. **MCP:** `get_screen` with `name` `projects/9702559548791545108/screens/2c2497ba2dee4162a6abd45a76f45ff0`, plus `projectId` and `screenId`.
+2. **`curl -L`** into [`static/register/plumber/`](../register/plumber/) — see [`static/register/plumber/README.md`](../register/plumber/README.md).
+
 ### Phase C1c — Verify Email (Fixavon)
 
 | | |

@@ -49,6 +49,19 @@ export interface RegisterClientRequest {
 	password: string;
 }
 
+export interface RegisterPlumberRequest {
+	email: string;
+	password: string;
+	full_name: string;
+	phone: string;
+	years_of_experience: number;
+}
+
+/** Flattened `user` + `profile` from API. */
+export interface RegisterPlumberResponse extends UserResponse {
+	profile: PlumberProfileResponse;
+}
+
 /** Flattened `user` + verification fields from API. */
 export interface RegisterClientResponse extends UserResponse {
 	email_verification_token: string;
