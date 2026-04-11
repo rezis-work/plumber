@@ -11,3 +11,13 @@ Current PNGs are **placeholders** (copies of the app icon) so Metro `require()` 
 | `register-plumber-mobile/` | Plumber Registration - Mobile | `99473da95838498aa626cd37f11153b7` |
 | `verify-email-mobile/` | Verify Email - Mobile | `5c38516278094c3ca521320fbd3edf1a` |
 | `login-mobile/` | Login - Mobile | `669b5b6b8ed24c179ed828e95c4fc88a` |
+
+**`landing-mobile/` files:** `coverage-map.png` (raster from Stitch HTML), `hero.png` (Stitch `get_screen` screenshot URL), `reference.html` (Stitch `htmlCode` download), optional `illustration.png` legacy placeholder.
+
+**`register-client-mobile/` files:** `illustration.png` (Stitch `get_screen` screenshot URL), `reference.html` (Stitch `htmlCode` download).
+
+**`verify-email-mobile/` files:** `illustration.png` (Stitch `get_screen` screenshot URL), `reference.html` (Stitch `htmlCode` download).
+
+**`register-plumber-mobile/` files:** `illustration.png` (Stitch `get_screen` screenshot URL), `reference.html` (Stitch `htmlCode` download).
+
+**`login-mobile/` files:** `illustration.png` (Stitch `get_screen` screenshot URL), `reference.html` (Stitch `htmlCode` download).

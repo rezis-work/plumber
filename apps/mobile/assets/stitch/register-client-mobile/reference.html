@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Client Account - Fixavon</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-dim": "#cbdbf5",
+                    "primary-fixed-dim": "#b3c5ff",
+                    "primary-container": "#0066ff",
+                    "on-primary-fixed-variant": "#003fa4",
+                    "on-tertiary-fixed-variant": "#005228",
+                    "tertiary-fixed-dim": "#4ae183",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#68fadd",
+                    "inverse-surface": "#213145",
+                    "error": "#ba1a1a",
+                    "outline": "#727687",
+                    "on-primary-container": "#f8f7ff",
+                    "surface-bright": "#f8f9ff",
+                    "background": "#f8f9ff",
+                    "surface-container-high": "#dce9ff",
+                    "primary-fixed": "#dae1ff",
+                    "on-error-container": "#93000a",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#008343",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#d3e4fe",
+                    "outline-variant": "#c2c6d8",
+                    "on-surface": "#0b1c30",
+                    "tertiary": "#006733",
+                    "surface-tint": "#0054d6",
+                    "on-tertiary-fixed": "#00210c",
+                    "tertiary-fixed": "#6bfe9c",
+                    "surface": "#f8f9ff",
+                    "secondary-fixed": "#68fadd",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-primary-fixed": "#001849",
+                    "on-secondary": "#ffffff",
+                    "surface-container": "#e5eeff",
+                    "secondary": "#006b5c",
+                    "on-secondary-container": "#007261",
+                    "surface-container-low": "#eff4ff",
+                    "on-background": "#0b1c30",
+                    "inverse-primary": "#b3c5ff",
+                    "surface-variant": "#d3e4fe",
+                    "on-secondary-fixed": "#00201a",
+                    "secondary-fixed-dim": "#44ddc1",
+                    "primary": "#0050cb",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#e2ffe4",
+                    "on-secondary-fixed-variant": "#005145",
+                    "on-surface-variant": "#424656"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col items-center">
+<!-- Top Navigation Anchor - Focused State (No Nav Links) -->
+<header class="fixed top-0 w-full z-50 bg-[#ffffff]/70 backdrop-blur-xl shadow-[0px_20px_40px_rgba(11,28,48,0.06)]">
+<div class="flex justify-between items-center px-6 h-16 w-full max-w-md mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-700" data-icon="water_drop">water_drop</span>
+<span class="text-xl font-black text-blue-700 tracking-tight">Fixavon</span>
+</div>
+<button class="text-slate-600 active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+</header>
+<!-- Main Registration Canvas -->
+<main class="flex-grow w-full max-w-md px-6 pt-24 pb-12">
+<!-- Header Section -->
+<div class="mb-10">
+<h1 class="text-[2.5rem] font-extrabold leading-[1.1] tracking-tight text-on-surface mb-3">
+                Create Client Account
+            </h1>
+<p class="text-body-lg text-on-surface-variant leading-relaxed">
+                Join Tbilisi's premier plumbing network. Get expert help in minutes.
+            </p>
+</div>
+<!-- Registration Form Layout -->
+<form class="space-y-6">
+<!-- Email Field -->
+<div class="space-y-1.5">
+<label class="text-[0.75rem] font-semibold text-on-surface-variant uppercase tracking-wider ml-1">Email Address</label>
+<div class="relative">
+<input class="w-full h-14 px-5 bg-surface-container-low border-0 rounded-xl text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all duration-300 outline-none" placeholder="name@example.com" type="email"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline" data-icon="mail">mail</span>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-1.5">
+<label class="text-[0.75rem] font-semibold text-on-surface-variant uppercase tracking-wider ml-1">Password</label>
+<div class="relative">
+<input class="w-full h-14 px-5 bg-surface-container-low border-0 rounded-xl text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all duration-300 outline-none" placeholder="Min. 8 characters" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline" data-icon="lock">lock</span>
+</div>
+</div>
+<!-- Confirm Password Field -->
+<div class="space-y-1.5">
+<label class="text-[0.75rem] font-semibold text-on-surface-variant uppercase tracking-wider ml-1">Confirm Password</label>
+<div class="relative">
+<input class="w-full h-14 px-5 bg-surface-container-low border-0 rounded-xl text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all duration-300 outline-none" placeholder="Repeat your password" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline" data-icon="verified_user">verified_user</span>
+</div>
+</div>
+<!-- Action Area -->
+<div class="pt-4 space-y-4">
+<button class="w-full h-14 bg-primary text-on-primary font-bold rounded-xl shadow-[0px_20px_40px_rgba(0,80,203,0.2)] active:scale-[0.98] transition-all duration-200 text-lg flex items-center justify-center gap-2" type="submit">
+                    Start Service
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<p class="text-center text-sm text-on-surface-variant px-4 leading-relaxed">
+                    By creating an account, you agree to our 
+                    <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> and 
+                    <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>.
+                </p>
+</div>
+</form>
+<!-- Trust Indicator Bento Element -->
+<div class="mt-12 p-6 bg-surface-container-low rounded-xl relative overflow-hidden">
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-12 h-12 bg-secondary-container flex items-center justify-center rounded-full">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Verified Expertise</h4>
+<p class="text-xs text-on-surface-variant">250+ Master Plumbers active in Tbilisi.</p>
+</div>
+</div>
+<!-- Asymmetric Liquid Background Detail -->
+<div class="absolute -right-10 -bottom-10 w-32 h-32 bg-secondary-container/20 rounded-full blur-3xl"></div>
+</div>
+<!-- Secondary Action -->
+<div class="mt-8 text-center">
+<span class="text-on-surface-variant text-sm">Already have an account?</span>
+<button class="ml-1 text-primary font-bold text-sm hover:opacity-80 transition-opacity">Sign In</button>
+</div>
+</main>
+<!-- Footer - Tonal Layering -->
+<footer class="w-full bg-[#eff4ff] rounded-t-[1.5rem] mt-auto">
+<div class="flex flex-col items-center py-10 px-8 space-y-6 w-full max-w-md mx-auto">
+<div class="text-lg font-bold text-blue-800">Fixavon Tbilisi</div>
+<div class="flex gap-6 text-sm font-['Inter'] text-slate-500">
+<span class="hover:text-teal-600 transition-colors">Services</span>
+<span class="hover:text-teal-600 transition-colors">Emergency</span>
+<span class="hover:text-teal-600 transition-colors">Terms</span>
+<span class="hover:text-teal-600 transition-colors">Privacy</span>
+</div>
+<p class="text-[0.7rem] font-['Inter'] text-slate-400 text-center uppercase tracking-widest">
+                © 2024 FIXAVON TBILISI. PROFESSIONAL PLUMBING.
+            </p>
+</div>
+</footer>
+<!-- Specialty Component: Trust Float -->
+<div class="fixed bottom-6 left-6 z-50">
+<div class="glassmorphic px-4 py-2 bg-surface-container-lowest/70 backdrop-blur-xl rounded-full shadow-[0px_20px_40px_rgba(11,28,48,0.06)] flex items-center gap-2 border border-white/20">
+<div class="w-2 h-2 bg-tertiary rounded-full animate-pulse"></div>
+<span class="text-xs font-bold text-on-surface">3 plumbers active in Tbilisi</span>
+</div>
+</div>
+</body></html>

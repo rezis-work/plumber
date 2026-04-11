@@ -183,6 +183,8 @@ Use **`isPending`** / **`isError`** from mutations for button disabled states an
 1. Prefer **one** place (e.g. root layout) that subscribes to “has session” derived from **M2** + **`useQuery` success** for **`me`** when needed.
 2. On **mutation** success for logout, clear queries before navigating to the auth stack to avoid flicker.
 
+**MQ in this repo:** **`@tanstack/react-query`** with **`QueryClientProvider`** wrapping **`AuthProvider`** in `apps/mobile/app/_layout.tsx`. **`AuthProvider`** receives **`onSessionCleared`** → **`queryClient.removeQueries({ queryKey: ['auth'] })`**. Factory: `apps/mobile/src/query/queryClient.ts`. **`useAuthMe`** (`apps/mobile/src/query/useAuthMe.ts`) — `queryKey` **`['auth','me']`** only, **`apiRequestAuthenticated`** for 401 refresh, **`staleTime` 45s**, syncs **`setUser`** on success. Mutations: `apps/mobile/src/query/authMutations.ts` (`useRegisterClientMutation`, `useRegisterPlumberMutation`, `useVerifyEmailMutation`, `useLoginMutation`, `useLogoutMutation`, `useLogoutAllMutation`). Barrel: `apps/mobile/src/query/index.ts`. **M5** will combine `accessToken`, **`useAuthMe`**, and navigation.
+
 ---
 
 ## Phase M4 — Screens and flows
@@ -234,9 +236,13 @@ Use **two registration flows** (separate screens/stacks), matching the API and w
 
 ### Step M4.3 — Session restore on cold start
 
-1. On app launch, show splash/loading while attempting refresh (or validating stored refresh).
-2. If success, **`invalidateQueries`** / refetch **`['auth','me']`** (**MQ.3**) and enter app.
-3. If failure, show login.
+**Implemented in** [`SessionGate`](../../apps/mobile/src/auth/SessionGate.tsx) (wrapped in [`app/_layout.tsx`](../../apps/mobile/app/_layout.tsx) after [`AuthProvider`](../../apps/mobile/src/auth/AuthContext.tsx)):
+
+1. On app launch, show loading (`ActivityIndicator`) while SecureStore hydration runs and, when a refresh token exists and there is no access token in memory, silent **`POST /auth/refresh`** completes.
+2. If refresh succeeds, warm **`['auth','me']`** via **`prefetchQuery`** using the new access token (falls back to **`invalidateQueries`** if prefetch fails); [`useAuthMe`](../../apps/mobile/src/query/useAuthMe.ts) then syncs profile when the app stack mounts.
+3. If refresh fails, **`clearSession`** — unauthenticated UX (guest landing with Log in; not a dedicated login route unless you add one).
+
+Manual QA: force-quit after login → reopen → still in session; after logout or revoked refresh → reopen → guest flow without a stuck spinner.
 
 ### Step M4.4 — Logout
 
@@ -291,7 +297,7 @@ Use **two registration flows** (separate screens/stacks), matching the API and w
 - [ ] **Client** signup → **verify-email** screen (Stitch **Verify Email - Mobile**, **MS.3**; dev token handling if applicable).
 - [ ] **Plumber** signup with full profile → success path.
 - [ ] Login → call protected endpoint → success.
-- [ ] Kill app → reopen → still logged in (refresh path works).
+- [ ] Kill app → reopen → still logged in (refresh path works — see **M4.3** / `SessionGate`).
 - [ ] Logout → reopen → login required.
 - [ ] Logout-all from another device/session invalidates mobile session on next refresh attempt.
 - [ ] Wrong login shows generic error only.

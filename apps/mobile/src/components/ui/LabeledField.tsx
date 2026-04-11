@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, radius, space } from '../../theme';
 
@@ -9,6 +10,9 @@ type Props = {
 	keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
 	autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 	placeholder?: string;
+	editable?: boolean;
+	/** Renders beside the label (e.g. forgot-password link). */
+	labelRight?: ReactNode;
 };
 
 export function LabeledField({
@@ -18,12 +22,22 @@ export function LabeledField({
 	secureTextEntry,
 	keyboardType = 'default',
 	autoCapitalize = 'none',
-	placeholder
+	placeholder,
+	editable = true,
+	labelRight
 }: Props) {
 	return (
 		<View style={styles.wrap}>
-			<Text style={styles.label}>{label}</Text>
+			{labelRight ? (
+				<View style={styles.labelRow}>
+					<Text style={styles.labelInRow}>{label}</Text>
+					{labelRight}
+				</View>
+			) : (
+				<Text style={styles.label}>{label}</Text>
+			)}
 			<TextInput
+				editable={editable}
 				value={value}
 				onChangeText={onChangeText}
 				secureTextEntry={secureTextEntry}
@@ -39,11 +53,22 @@ export function LabeledField({
 
 const styles = StyleSheet.create({
 	wrap: { marginBottom: space[4] },
+	labelRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: space[2]
+	},
 	label: {
 		fontSize: 14,
 		fontWeight: '600',
 		color: colors.text,
 		marginBottom: space[2]
+	},
+	labelInRow: {
+		fontSize: 14,
+		fontWeight: '600',
+		color: colors.text
 	},
 	input: {
 		borderWidth: 1,

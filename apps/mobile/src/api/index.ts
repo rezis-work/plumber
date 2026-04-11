@@ -1,4 +1,9 @@
 export {
+	loginErrorMessage,
+	registerFormErrorMessage,
+	verifyEmailErrorMessage
+} from './authErrors';
+export {
 	applyNativeLoginResponse,
 	authLogin,
 	authLogout,

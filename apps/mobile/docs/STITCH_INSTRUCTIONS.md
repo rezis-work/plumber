@@ -28,10 +28,10 @@ See [implementation_001_auth_mobile.md — Step MS.3](../../../docs/implementati
 
 | Stitch screen | Route | Raster files used in UI |
 |---------------|-------|-------------------------|
-| Landing (mobile) | `/` — `app/(guest)/index.tsx` | `landing-mobile/hero.png` |
-| Client registration | `/register` — `app/(guest)/register/index.tsx` | `register-client-mobile/illustration.png` |
-| Plumber registration | `/register/plumber` — `app/(guest)/register/plumber.tsx` | `register-plumber-mobile/illustration.png` |
-| Verify email | `/verify-email` — `app/(guest)/verify-email.tsx` | `verify-email-mobile/illustration.png` |
-| Login | `/login` — `app/(guest)/login.tsx` | `login-mobile/illustration.png` |
+| Landing (mobile) | `/` — `app/(guest)/index.tsx` | `landing-mobile/coverage-map.png` (from Stitch HTML export); `hero.png` = MCP screenshot URL; `reference.html` = MCP `htmlCode` export |
+| Client registration | `/register` — `app/(guest)/register/index.tsx` | `register-client-mobile/illustration.png` (MCP screenshot); `reference.html` = MCP `htmlCode` |
+| Plumber registration | `/register/plumber` — `app/(guest)/register/plumber.tsx` | `register-plumber-mobile/illustration.png` (MCP screenshot); `reference.html` = MCP `htmlCode` |
+| Verify email | `/verify-email` — `app/(guest)/verify-email.tsx` | `verify-email-mobile/illustration.png` (MCP screenshot); `reference.html` = MCP `htmlCode` |
+| Login | `/login` — `app/(guest)/login.tsx` | `login-mobile/illustration.png` (MCP screenshot); `reference.html` = MCP `htmlCode` |
 
 **Typography:** Web uses **Inter** (`app.html`). MS.3 screens use the **system sans-serif** for now. For pixel parity, add **`expo-font`** + **`@expo-google-fonts/inter`** in a follow-up.

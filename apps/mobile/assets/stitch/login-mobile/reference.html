@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fixavon | Secure Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-dim": "#cbdbf5",
+                    "primary-fixed-dim": "#b3c5ff",
+                    "primary-container": "#0066ff",
+                    "on-primary-fixed-variant": "#003fa4",
+                    "on-tertiary-fixed-variant": "#005228",
+                    "tertiary-fixed-dim": "#4ae183",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#68fadd",
+                    "inverse-surface": "#213145",
+                    "error": "#ba1a1a",
+                    "outline": "#727687",
+                    "on-primary-container": "#f8f7ff",
+                    "surface-bright": "#f8f9ff",
+                    "background": "#f8f9ff",
+                    "surface-container-high": "#dce9ff",
+                    "primary-fixed": "#dae1ff",
+                    "on-error-container": "#93000a",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#008343",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#d3e4fe",
+                    "outline-variant": "#c2c6d8",
+                    "on-surface": "#0b1c30",
+                    "tertiary": "#006733",
+                    "surface-tint": "#0054d6",
+                    "on-tertiary-fixed": "#00210c",
+                    "tertiary-fixed": "#6bfe9c",
+                    "surface": "#f8f9ff",
+                    "secondary-fixed": "#68fadd",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-primary-fixed": "#001849",
+                    "on-secondary": "#ffffff",
+                    "surface-container": "#e5eeff",
+                    "secondary": "#006b5c",
+                    "on-secondary-container": "#007261",
+                    "surface-container-low": "#eff4ff",
+                    "on-background": "#0b1c30",
+                    "inverse-primary": "#b3c5ff",
+                    "surface-variant": "#d3e4fe",
+                    "on-secondary-fixed": "#00201a",
+                    "secondary-fixed-dim": "#44ddc1",
+                    "primary": "#0050cb",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#e2ffe4",
+                    "on-secondary-fixed-variant": "#005145",
+                    "on-surface-variant": "#424656"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "1rem",
+                    "xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .liquid-gradient {
+            background: linear-gradient(135deg, #0050cb 0%, #0066ff 100%);
+        }
+        body {
+            background-color: #f8f9ff;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background min-h-screen flex flex-col items-center">
+<!-- Top Navigation Bar (Shared Component Strategy - Suppressed for Focused Login) -->
+<header class="fixed top-0 w-full z-50 glass-effect shadow-[0px_20px_40px_rgba(11,28,48,0.06)]">
+<div class="flex justify-between items-center px-6 h-16 w-full max-w-md mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="water_drop">water_drop</span>
+<span class="text-xl font-black text-primary tracking-tight">Fixavon</span>
+</div>
+<div class="p-2 active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined text-primary" data-icon="close">close</span>
+</div>
+</div>
+</header>
+<main class="w-full max-w-md px-6 pt-24 pb-12 flex flex-col flex-grow">
+<!-- Hero Section -->
+<div class="mb-10 text-center">
+<h1 class="text-4xl font-extrabold text-on-surface tracking-tight mb-2">Welcome Back</h1>
+<p class="text-on-surface-variant font-body leading-relaxed">Securely access your Tbilisi plumbing services dashboard.</p>
+</div>
+<!-- Login Card -->
+<div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0px_20px_40px_rgba(11,28,48,0.06)] space-y-6">
+<!-- Form Group: Email -->
+<div class="space-y-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant ml-1" for="email">Email Address</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline" data-icon="mail">mail</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all duration-300 text-on-surface placeholder:text-outline-variant" id="email" placeholder="name@example.com" type="email"/>
+</div>
+</div>
+<!-- Form Group: Password -->
+<div class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<label class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant" for="password">Password</label>
+<a class="text-xs font-bold text-primary hover:opacity-80 transition-opacity" href="#">Forgot Password?</a>
+</div>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline" data-icon="lock">lock</span>
+<input class="w-full pl-12 pr-12 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all duration-300 text-on-surface placeholder:text-outline-variant" id="password" placeholder="••••••••" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline cursor-pointer" data-icon="visibility">visibility</span>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full liquid-gradient text-on-primary font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all duration-200">
+                Log In to Account
+            </button>
+</div>
+<!-- Asymmetric Registration Section (High-End Bento Style) -->
+<div class="mt-12 space-y-4">
+<h2 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest text-center mb-6">New to Fixavon?</h2>
+<div class="grid grid-cols-1 gap-4">
+<!-- Register as Client -->
+<div class="group bg-surface-container-low rounded-xl p-6 flex items-center justify-between hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined" data-icon="person_search">person_search</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Register as Client</p>
+<p class="text-xs text-on-surface-variant">I need a plumbing expert</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</div>
+<!-- Register as Plumber -->
+<div class="group bg-surface-container-low rounded-xl p-6 flex items-center justify-between hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="construction">construction</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Register as Plumber</p>
+<p class="text-xs text-on-surface-variant">I want to provide services</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</div>
+</div>
+</div>
+<!-- Trust Indicator -->
+<div class="mt-auto pt-12 flex justify-center">
+<div class="glass-effect rounded-full px-4 py-2 flex items-center gap-2 border border-outline-variant/10">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-xs font-medium text-on-surface-variant">Secure, encrypted login powered by Fixavon</span>
+</div>
+</div>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="bg-surface-container-low w-full rounded-t-xl mt-4">
+<div class="flex flex-col items-center py-10 px-8 space-y-6 w-full">
+<div class="text-lg font-bold text-primary">Fixavon</div>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="text-sm text-slate-500 hover:text-secondary transition-colors" href="#">Services</a>
+<a class="text-sm text-slate-500 hover:text-secondary transition-colors" href="#">Emergency</a>
+<a class="text-sm text-slate-500 hover:text-secondary transition-colors" href="#">Terms</a>
+<a class="text-sm text-slate-500 hover:text-secondary transition-colors" href="#">Privacy</a>
+</div>
+<p class="text-sm text-slate-500 text-center leading-relaxed">© 2024 Fixavon Tbilisi. Professional Plumbing.</p>
+</div>
+</footer>
+<!-- Specialty Component: Trust Float -->
+<div class="fixed bottom-6 left-6 z-40 hidden md:flex">
+<div class="glass-effect rounded-full px-4 py-2 flex items-center gap-2 shadow-lg border border-white/20">
+<span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+</span>
+<span class="text-[10px] font-bold text-on-surface uppercase tracking-tighter">3 plumbers active in Tbilisi now</span>
+</div>
+</div>
+</body></html>
