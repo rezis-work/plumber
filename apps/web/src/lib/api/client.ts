@@ -1,5 +1,12 @@
 import { apiUrl } from './publicOrigin';
-import type { LoginRequest, LoginResponse, LogoutAllResponse, MeResponse } from './types';
+import type {
+	LoginRequest,
+	LoginResponse,
+	LogoutAllResponse,
+	MeResponse,
+	RegisterClientRequest,
+	RegisterClientResponse
+} from './types';
 
 export class ApiError extends Error {
 	constructor(
@@ -111,5 +118,13 @@ export function authMe(accessToken: string): Promise<MeResponse> {
 	return apiRequest<MeResponse>('/auth/me', {
 		method: 'GET',
 		accessToken
+	});
+}
+
+export function authRegisterClient(body: RegisterClientRequest): Promise<RegisterClientResponse> {
+	return apiRequest<RegisterClientResponse>('/auth/register/client', {
+		method: 'POST',
+		jsonBody: body,
+		credentials: 'omit'
 	});
 }

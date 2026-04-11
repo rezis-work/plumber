@@ -6,7 +6,7 @@ Base path: `/auth` on the Rust API (default **http://127.0.0.1:3001**). With the
 
 | Method | Path | Notes |
 |--------|------|--------|
-| `POST` | `/auth/register/client` | JSON `{ email, password }` |
+| `POST` | `/auth/register/client` | JSON `{ email, password }` — see `authRegisterClient` in [`client.ts`](./client.ts) |
 | `POST` | `/auth/register/plumber` | JSON `{ email, password, full_name, phone, years_of_experience }` |
 | `POST` | `/auth/login` | JSON `{ email, password }`; sets httpOnly refresh cookie |
 | `POST` | `/auth/refresh` | Uses refresh cookie; returns new access token |

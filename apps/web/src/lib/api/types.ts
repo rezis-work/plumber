@@ -33,3 +33,24 @@ export interface MeResponse {
 export interface LogoutAllResponse {
 	sessions_revoked: number;
 }
+
+export interface UserResponse {
+	id: string;
+	email: string;
+	role: Role;
+	is_active: boolean;
+	is_email_verified: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface RegisterClientRequest {
+	email: string;
+	password: string;
+}
+
+/** Flattened `user` + verification fields from API. */
+export interface RegisterClientResponse extends UserResponse {
+	email_verification_token: string;
+	email_verification_expires_at: string;
+}
