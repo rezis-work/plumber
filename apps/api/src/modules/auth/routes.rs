@@ -2,10 +2,14 @@ use axum::middleware;
 use axum::routing::{get, post};
 use axum::Router;
 
+use crate::modules::users::Role;
 use crate::AppState;
 
 use super::handler;
 use super::middleware_access::require_access_token;
+
+/// Roles allowed on [`handler::rbac_staff_check`] (Step 8 `require_any_role` demo).
+const RBAC_STAFF_ROLES: &[Role] = &[Role::Plumber, Role::Admin];
 
 pub fn auth_routes(state: AppState) -> Router<AppState> {
     let public = Router::new()
@@ -16,11 +20,43 @@ pub fn auth_routes(state: AppState) -> Router<AppState> {
     let protected = Router::new()
         .route("/me", get(handler::me))
         .layer(middleware::from_fn_with_state(
-            state,
+            state.clone(),
             require_access_token,
         ));
 
-    public.merge(protected)
+    // Step 8 stubs: access middleware outer, role inner (`MethodRouter::layer` order).
+    let rbac_plumber = Router::new().route(
+        "/rbac/plumber-check",
+        get(handler::rbac_plumber_check)
+            .layer(crate::require_role!(Role::Plumber))
+            .layer(middleware::from_fn_with_state(
+                state.clone(),
+                require_access_token,
+            )),
+    );
+
+    let rbac_admin = Router::new().route(
+        "/rbac/admin-check",
+        get(handler::rbac_admin_check)
+            .layer(crate::require_role!(Role::Admin))
+            .layer(middleware::from_fn_with_state(
+                state.clone(),
+                require_access_token,
+            )),
+    );
+
+    let rbac_staff = Router::new().route(
+        "/rbac/staff-check",
+        get(handler::rbac_staff_check)
+            .layer(crate::require_any_role!(RBAC_STAFF_ROLES))
+            .layer(middleware::from_fn_with_state(state, require_access_token)),
+    );
+
+    public
+        .merge(protected)
+        .merge(rbac_plumber)
+        .merge(rbac_admin)
+        .merge(rbac_staff)
 }
 
 #[cfg(test)]
@@ -69,6 +105,21 @@ mod tests {
         let v: serde_json::Value = serde_json::from_slice(body).expect("json body");
         assert_eq!(v["error"], json!("unauthorized"));
         assert_eq!(v["message"], json!("authentication required"));
+    }
+
+    fn assert_forbidden(body: &[u8]) {
+        let v: serde_json::Value = serde_json::from_slice(body).expect("json body");
+        assert_eq!(v["error"], json!("forbidden"));
+        assert_eq!(v["message"], json!("insufficient permissions"));
+    }
+
+    fn bearer_get(uri: &str, token: &str) -> Request<Body> {
+        Request::builder()
+            .method("GET")
+            .uri(uri)
+            .header(AUTHORIZATION, format!("Bearer {}", token))
+            .body(Body::empty())
+            .unwrap()
     }
 
     #[tokio::test]
@@ -200,6 +251,125 @@ mod tests {
             .await
             .expect("oneshot");
 
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_unauthorized(&body);
+    }
+
+    #[tokio::test]
+    async fn rbac_plumber_check_403_for_client_token() {
+        let jwt = JwtConfig::test_config();
+        let token = jwt
+            .create_access_token(Uuid::new_v4(), Role::Client)
+            .expect("token");
+        let res = app(jwt)
+            .oneshot(bearer_get("/auth/rbac/plumber-check", &token))
+            .await
+            .expect("oneshot");
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_forbidden(&body);
+    }
+
+    #[tokio::test]
+    async fn rbac_admin_check_403_for_client_token() {
+        let jwt = JwtConfig::test_config();
+        let token = jwt
+            .create_access_token(Uuid::new_v4(), Role::Client)
+            .expect("token");
+        let res = app(jwt)
+            .oneshot(bearer_get("/auth/rbac/admin-check", &token))
+            .await
+            .expect("oneshot");
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_forbidden(&body);
+    }
+
+    #[tokio::test]
+    async fn rbac_plumber_check_200_for_plumber() {
+        let jwt = JwtConfig::test_config();
+        let token = jwt
+            .create_access_token(Uuid::new_v4(), Role::Plumber)
+            .expect("token");
+        let res = app(jwt)
+            .oneshot(bearer_get("/auth/rbac/plumber-check", &token))
+            .await
+            .expect("oneshot");
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn rbac_admin_check_200_for_admin() {
+        let jwt = JwtConfig::test_config();
+        let token = jwt
+            .create_access_token(Uuid::new_v4(), Role::Admin)
+            .expect("token");
+        let res = app(jwt)
+            .oneshot(bearer_get("/auth/rbac/admin-check", &token))
+            .await
+            .expect("oneshot");
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn rbac_admin_check_403_for_plumber() {
+        let jwt = JwtConfig::test_config();
+        let token = jwt
+            .create_access_token(Uuid::new_v4(), Role::Plumber)
+            .expect("token");
+        let res = app(jwt)
+            .oneshot(bearer_get("/auth/rbac/admin-check", &token))
+            .await
+            .expect("oneshot");
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_forbidden(&body);
+    }
+
+    #[tokio::test]
+    async fn rbac_staff_check_403_for_client() {
+        let jwt = JwtConfig::test_config();
+        let token = jwt
+            .create_access_token(Uuid::new_v4(), Role::Client)
+            .expect("token");
+        let res = app(jwt)
+            .oneshot(bearer_get("/auth/rbac/staff-check", &token))
+            .await
+            .expect("oneshot");
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_forbidden(&body);
+    }
+
+    #[tokio::test]
+    async fn rbac_staff_check_200_for_plumber_and_admin() {
+        let jwt = JwtConfig::test_config();
+        for role in [Role::Plumber, Role::Admin] {
+            let token = jwt
+                .create_access_token(Uuid::new_v4(), role)
+                .expect("token");
+            let res = app(jwt.clone())
+                .oneshot(bearer_get("/auth/rbac/staff-check", &token))
+                .await
+                .expect("oneshot");
+            assert_eq!(res.status(), StatusCode::OK, "role {:?}", role);
+        }
+    }
+
+    #[tokio::test]
+    async fn rbac_plumber_check_401_without_bearer() {
+        let jwt = JwtConfig::test_config();
+        let res = app(jwt)
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/auth/rbac/plumber-check")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .expect("oneshot");
         assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
         let body = res.into_body().collect().await.unwrap().to_bytes();
         assert_unauthorized(&body);

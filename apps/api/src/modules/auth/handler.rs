@@ -1,6 +1,7 @@
 use axum::http::header::{self, HeaderValue};
 use axum::response::{IntoResponse, Response};
 use axum::{extract::State, http::StatusCode, Json};
+use serde_json::json;
 
 use crate::AppState;
 
@@ -55,4 +56,19 @@ pub async fn me(AuthUser(ctx): AuthUser) -> Json<MeResponse> {
         user_id: ctx.user_id,
         role: ctx.role,
     })
+}
+
+/// Step 8 RBAC verification stub; replace with a real plumber-only route when domains land.
+pub async fn rbac_plumber_check() -> Json<serde_json::Value> {
+    Json(json!({ "ok": true }))
+}
+
+/// Step 8 RBAC verification stub.
+pub async fn rbac_admin_check() -> Json<serde_json::Value> {
+    Json(json!({ "ok": true }))
+}
+
+/// Step 8 `require_any_role` verification stub.
+pub async fn rbac_staff_check() -> Json<serde_json::Value> {
+    Json(json!({ "ok": true }))
 }
