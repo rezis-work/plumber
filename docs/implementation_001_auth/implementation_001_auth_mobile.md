@@ -123,6 +123,8 @@ Regardless of option:
 
 **TanStack Query:** On logout / logout-all success, **remove** or **reset** cached queries (e.g. `queryClient.removeQueries({ queryKey: ['auth'] })`) so **`/auth/me`** and other authenticated data cannot flash stale UI—see **Phase MQ**.
 
+**M2 in this repo:** **ADR 002** native path only — refresh JWT in **expo-secure-store** via `apps/mobile/src/auth/secureRefreshToken.ts`; access token and `MeResponse` user live in **`AuthProvider`** / `useAuth()` (`apps/mobile/src/auth/AuthContext.tsx`). Types for `/auth/me` match the API in `apps/mobile/src/api/types.ts`. Root layout wraps the app with `AuthProvider` (`apps/mobile/app/_layout.tsx`). **`hasRefreshTokenStored`** + **`isHydrated`** support cold-start silent refresh in **M3/M5** (no network calls in M2). End-to-end login/refresh requires the API change described in ADR 002. Pass **`onSessionCleared`** to `AuthProvider` when **Phase MQ** is wired to clear auth query cache on logout.
+
 ---
 
 ## Phase M3 — HTTP client
