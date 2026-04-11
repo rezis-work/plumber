@@ -22,24 +22,44 @@ export function clearSession(): void {
 	session.lastError = null;
 }
 
+let hydrateInFlight: Promise<void> | null = null;
+
 /**
- * Silent refresh on load: cookie session → access token → `/auth/me`.
- * On failure (including 401), clears session.
+ * Silent refresh: cookie session → access token → `/auth/me`.
+ * On failure (including 401), clears session. No retry loop.
+ * Skips if `accessToken` is already set. Overlapping callers await the same in-flight attempt.
  */
 export async function hydrateFromRefresh(): Promise<void> {
-	session.hydrating = true;
-	session.lastError = null;
-	try {
-		const login = await authRefresh();
-		session.accessToken = login.access_token;
-		session.user = await authMe(login.access_token);
-	} catch (e) {
-		clearSession();
-		if (e instanceof ApiError && e.status !== 401) {
-			session.lastError = e.message;
+	if (session.accessToken !== null) {
+		return;
+	}
+	if (hydrateInFlight) {
+		return hydrateInFlight;
+	}
+
+	const run = async (): Promise<void> => {
+		session.hydrating = true;
+		session.lastError = null;
+		try {
+			const login = await authRefresh();
+			session.accessToken = login.access_token;
+			session.user = await authMe(login.access_token);
+		} catch (e) {
+			clearSession();
+			if (e instanceof ApiError && e.status !== 401) {
+				session.lastError = e.message;
+			}
+		} finally {
+			session.hydrating = false;
 		}
+	};
+
+	const p = run();
+	hydrateInFlight = p;
+	try {
+		await p;
 	} finally {
-		session.hydrating = false;
+		hydrateInFlight = null;
 	}
 }
 

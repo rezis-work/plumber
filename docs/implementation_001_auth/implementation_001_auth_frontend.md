@@ -245,6 +245,8 @@ Typical routes: `/login`, `/sign-in`, or similar.
    - If refresh fails, treat as logged out (clear state).
 2. Avoid infinite refresh loops: cap retries, handle 401 once.
 
+**Implemented (SvelteKit web):** [`apps/web/src/routes/+layout.svelte`](../../apps/web/src/routes/+layout.svelte) runs `hydrateFromRefresh()` from [`apps/web/src/lib/auth/session.svelte.ts`](../../apps/web/src/lib/auth/session.svelte.ts) in `onMount` when `session.accessToken === null` and `browser`. `hydrateFromRefresh` issues a single `POST /auth/refresh` (via [`client.ts`](../../apps/web/src/lib/api/client.ts), default `credentials: 'include'`), then `GET /auth/me`; overlapping calls await one in-flight refresh; any failure clears session without retries. SSR does not run refresh (httpOnly cookie); see [`token-storage.md`](../../apps/web/src/lib/auth/token-storage.md).
+
 ### Step C4 — Access token attachment
 
 1. For authenticated API calls from the browser, attach `Authorization: Bearer <access_token>`.
@@ -326,6 +328,7 @@ Document limitations if SSR cannot see httpOnly refresh JWT.
 ## Frontend deliverables checklist
 
 - [ ] Configured API base URL and credentials mode for cookie endpoints.
+- [x] **C3:** Bootstrap session on full load (silent refresh + `/auth/me` when no in-memory access token; see Step C3 above).
 - [ ] **Separate** client signup vs **become plumber** flows (routes + forms + API calls).
 - [ ] Client post-signup **email verification** UX; dev-only handling of verification token until email is sent server-side.
 - [ ] Login/logout flows wired with correct error messaging policy.

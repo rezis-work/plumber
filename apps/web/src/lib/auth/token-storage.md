@@ -7,9 +7,9 @@
 
 ## Silent refresh
 
-On app load, the root layout calls **`hydrateFromRefresh()`**, which:
+On app load, the root layout calls **`hydrateFromRefresh()`** only when **`session.accessToken === null`** (see [`+layout.svelte`](../../routes/+layout.svelte)). That function:
 
-1. `POST /auth/refresh` with **`credentials: 'include'`** (sends the refresh cookie).
+1. `POST /auth/refresh` with **`credentials: 'include'`** (sends the refresh cookie)—**once** per hydration; concurrent callers share the same in-flight promise.
 2. On success, stores the new `access_token` in memory and loads **`GET /auth/me`** with `Authorization: Bearer …`.
 3. On **401** (or any failure), clears in-memory session; unauthenticated users have no cookie or an invalid session.
 
