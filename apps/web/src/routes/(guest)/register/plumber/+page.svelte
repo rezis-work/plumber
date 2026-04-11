@@ -356,6 +356,19 @@
 	@media (min-width: 768px) {
 		.page {
 			flex-direction: row;
+			align-items: flex-start;
+		}
+	}
+
+	@media (min-width: 768px) and (max-width: 1023px) {
+		.page {
+			gap: var(--space-4);
+		}
+	}
+
+	@media (min-width: 768px) and (max-width: 899px) {
+		.page {
+			gap: var(--space-2);
 		}
 	}
 
@@ -379,7 +392,7 @@
 		min-height: 22rem;
 		background: var(--color-primary);
 		color: var(--color-on-primary);
-		display: flex;
+		display: none;
 		flex-direction: column;
 		padding: var(--space-8);
 		overflow: hidden;
@@ -387,14 +400,29 @@
 
 	@media (min-width: 768px) {
 		.hero {
-			width: 42%;
-			max-width: 28rem;
+			display: flex;
+			width: 45%;
 			min-height: 100vh;
 			height: 100vh;
-			padding: var(--space-12) var(--space-8);
+			padding: var(--space-10) var(--space-10);
 			position: sticky;
 			top: 0;
 			align-self: flex-start;
+		}
+	}
+
+	@media (min-width: 768px) and (max-width: 899px) {
+		.hero {
+			width: 42%;
+			padding: var(--space-8) var(--space-6);
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.hero {
+			width: 42%;
+			max-width: 28rem;
+			padding: var(--space-12) var(--space-8);
 		}
 	}
 
@@ -442,6 +470,15 @@
 	.hero__copy {
 		margin-top: auto;
 		max-width: 22rem;
+	}
+
+	@media (min-width: 768px) and (max-width: 1023px) {
+		.hero__copy {
+			margin-top: auto;
+			margin-right: auto;
+			margin-bottom: var(--space-8);
+			margin-left: auto;
+		}
 	}
 
 	.hero__eyebrow {
@@ -526,29 +563,42 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--space-8) var(--space-6);
+		padding: var(--space-6);
 	}
 
 	@media (min-width: 768px) {
 		.panel {
-			padding: var(--space-12) var(--space-10) var(--space-12) var(--space-8);
+			padding: var(--space-12) var(--space-12) var(--space-12) var(--space-8);
+			align-items: flex-start;
+		}
+	}
+
+	@media (min-width: 768px) and (max-width: 899px) {
+		.panel {
+			padding: var(--space-8) var(--space-4);
 		}
 	}
 
 	@media (min-width: 1024px) {
 		.panel {
-			padding: var(--space-8) var(--space-12);
+			padding: var(--space-24);
+			align-items: center;
 		}
 	}
 
 	.panel__inner {
 		width: 100%;
-		max-width: 42rem;
+		max-width: 32rem;
+	}
+
+	@media (min-width: 1024px) {
+		.panel__inner {
+			max-width: 38rem;
+		}
 	}
 
 	.panel__header {
-		margin-bottom: var(--space-10);
-		padding-bottom: var(--space-2);
+		margin-bottom: var(--space-2);
 	}
 
 	.panel__title {
@@ -569,20 +619,8 @@
 		background: var(--color-surface-elevated);
 		border-radius: var(--radius-xl);
 		padding: var(--space-6);
-		box-shadow: var(--shadow-ambient);
-		border: 1px solid color-mix(in srgb, var(--color-outline-variant) 35%, transparent);
-	}
-
-	@media (min-width: 768px) {
-		.card {
-			padding: var(--space-10) var(--space-10);
-		}
-	}
-
-	@media (min-width: 1024px) {
-		.card {
-			padding: var(--space-12) var(--space-12);
-		}
+		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+		border: 1px solid var(--color-outline-variant);
 	}
 
 	.form {
@@ -610,6 +648,13 @@
 		.field-grid {
 			grid-template-columns: 1fr 1fr;
 			gap: var(--space-8) var(--space-6);
+		}
+	}
+
+	@media (min-width: 768px) and (max-width: 899px) {
+		.field-grid {
+			grid-template-columns: 1fr;
+			gap: var(--space-6);
 		}
 	}
 
@@ -666,6 +711,12 @@
 
 	.field__input::placeholder {
 		color: var(--color-outline);
+	}
+
+	@media (max-width: 1150px) {
+		.field__input::placeholder {
+			font-size: 0.88em;
+		}
 	}
 
 	.field__input:focus {
