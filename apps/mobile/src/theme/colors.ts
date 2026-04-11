@@ -22,6 +22,10 @@ export const colors = {
 	textMuted: n.on_surface_variant,
 	outline: n.outline,
 	outlineVariant: n.outline_variant,
+	/** Alias for web `--color-border` (outline_variant). */
+	border: n.outline_variant,
+	/** Alias for web `--color-primary-bright` (primary_container). */
+	primaryBright: n.primary_container,
 	error: n.error,
 	onError: n.on_error,
 	success: n.tertiary,

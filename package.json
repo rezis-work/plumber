@@ -13,7 +13,8 @@
     "build:web": "turbo run build --filter=web",
     "build:mobile": "turbo run build --filter=mobile",
     "build:api": "cd apps/api && cargo build",
-    "test:api": "cd apps/api && cargo test"
+    "test:api": "cd apps/api && cargo test",
+    "sync-design-tokens": "node -e \"require('fs').copyFileSync('apps/web/src/lib/design/tokens.json','apps/mobile/src/design/tokens.json')\""
   },
   "devDependencies": {
     "turbo": "^2.5.0"

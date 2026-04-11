@@ -11,7 +11,8 @@
     "build": "expo export",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "sync-tokens": "node -e \"const p=require('path'),fs=require('fs');fs.copyFileSync(p.join(process.cwd(),'../web/src/lib/design/tokens.json'),p.join(process.cwd(),'src/design/tokens.json'))\""
   },
   "dependencies": {
     "expo": "~54.0.33",

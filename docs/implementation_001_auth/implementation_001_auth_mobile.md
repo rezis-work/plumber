@@ -31,6 +31,8 @@ Native UI must match the **Stitch**-driven design system used on the web. Do **n
 1. Map semantic colors into your RN theme (constants, NativeWind, Tamagui, etc.) using the **same names and hex values** as the web app.
 2. When Stitch exports update, update **web first** (Phase 0.2), then sync mobile in one pass.
 
+**MS.1–MS.2 in this repo:** Web canonical file is `apps/web/src/lib/design/tokens.json`; mobile keeps a copy at `apps/mobile/src/design/tokens.json`. After any web token update, run **`pnpm sync-design-tokens`** from the repository root, or **`pnpm sync-tokens`** from `apps/mobile`, to copy web → mobile in one step. Semantic colors and spacing for React Native live under `apps/mobile/src/theme/` (`colors.ts`, `spacing.ts`). Stitch IDs and `curl -L` workflow for mobile are summarized in `apps/mobile/docs/STITCH_INSTRUCTIONS.md`; see also `apps/mobile/src/design/README.md`.
+
 ### Step MS.3 — Mobile marketing & auth screens (Stitch MCP + assets)
 
 Build **native** layouts from Stitch’s **mobile** exports (not the desktop-only web screens). Use **Stitch MCP** in Cursor the same way as [Phase 0 / 0B in the frontend guide](./implementation_001_auth_frontend.md#phase-0--design-system-google-stitch): list or pull screens by **project** and **screen ID**, then download any hosted asset or export URLs.
