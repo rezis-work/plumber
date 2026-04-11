@@ -8,6 +8,78 @@
 - API implements cookie-based refresh and Bearer access tokens as in the API guide.
 - You will align **CORS** and **cookie** settings on the API with how the browser reaches the API (same-site vs cross-origin).
 
+**Order:** (1) **Phase 0** — design tokens from Stitch. (2) **Phase 0B** — marketing landing from Stitch. (3) **Phase A onward** — API client, auth flows, protected routes. **Mobile** reuses the same palette (Phase MS); a native marketing screen can follow the same Fixavon layout when you add a Stitch mobile export.
+
+---
+
+## Phase 0 — Design system (Google Stitch)
+
+Visual design is sourced from **Stitch** (MCP in Cursor). Do this phase **first** so registration, login, and shell layouts use the canonical colors and typography.
+
+### Stitch instructions (reference)
+
+Use the Stitch MCP server to fetch images and code for the project screens, then materialize assets locally.
+
+| | |
+|--|--|
+| **Project ID** | `9702559548791545108` |
+| **Screens (start here)** | **1. Design System** |
+| **Design System screen / asset id** | `asset-stub-assets-547841dc1b4545db8471e31333de0ce8-1775829756314` |
+
+### Step 0.1 — Export tokens from Stitch
+
+1. In Cursor, use **Stitch MCP** to list or pull the **Design System** screen for project `9702559548791545108` (asset id above).
+2. For any **hosted URLs** (images, exports), download with a utility such as:
+
+   `curl -L -o <local-filename> "<url-from-stitch>"`
+
+3. Store exports in a predictable place (e.g. `apps/web/static/design/` or `docs/design/stitch/`) and **commit** the token summary (CSS variables, Tailwind extension, or a small `tokens.json`) derived from the Design System—not only binary screenshots.
+
+### Step 0.2 — Wire into SvelteKit
+
+1. Define **semantic colors** (primary, surface, error, success, text, border) and typography scale in one place (`app.css`, Tailwind theme, or CSS variables).
+2. **Do not** hard-code one-off hex values in auth components; import from the shared theme.
+3. Document in a one-line comment or README where Stitch project IDs live so future prompt updates stay traceable.
+
+### Step 0.3 — Shared palette for mobile
+
+**Expo / React Native** must reuse **these same tokens** (duplicate the committed token file or import a shared package if you introduce a monorepo design package later). The mobile guide [Phase MS](./implementation_001_auth_mobile.md#phase-ms--design-system-shared-with-web) points back here.
+
+---
+
+## Phase 0B — Marketing landing page (Stitch)
+
+**Second step** after the Design System: ship a **public marketing / home** experience before (or in parallel with) wiring auth API details. This is **not** authenticated; it drives users toward client signup, plumber application, and login.
+
+### Stitch instructions (Fixavon landing — desktop)
+
+Use the **Stitch MCP** server to pull images and code for this screen, same project as Phase 0.
+
+| | |
+|--|--|
+| **Project ID** | `9702559548791545108` |
+| **Screen** | **Fixavon Landing Page - Desktop** |
+| **Screen ID** | `54764d32cd774878a96490bdfc6b3f72` |
+
+### Step 0B.1 — Export assets
+
+1. Fetch **Fixavon Landing Page - Desktop** via Stitch MCP for project `9702559548791545108`.
+2. Download any hosted URLs with e.g. `curl -L -o <local-filename> "<url-from-stitch>"` (hero images, logos, icons).
+3. Keep exports next to other Stitch assets (e.g. `apps/web/static/marketing/` or under `docs/design/stitch/fixavon/`).
+
+### Step 0B.2 — Implement in SvelteKit
+
+1. Add a **public route** (typically `/` or `/home`) that renders the landing layout; **no** Bearer token and **no** requirement for refresh cookie.
+2. Reuse **Phase 0** tokens (colors, type, spacing); align any Stitch-generated markup/CSS with your Svelte components (do not leave auth pages and marketing on different ad-hoc palettes).
+3. Wire **primary CTAs** to real routes you will build in Phase C (e.g. “Sign up” → client register, “Become a plumber” → plumber register, “Log in” → login).
+4. **Desktop-first:** this Stitch screen is **desktop**; plan a responsive collapse or a follow-up **mobile** Stitch screen for small viewports if the export does not cover them.
+
+### Step 0B.3 — Acceptance
+
+- Landing loads without API auth.
+- CTAs navigate to the correct future auth routes (placeholders OK until Phase C exists).
+- Visuals match the Stitch export within reasonable engineering tolerance (assets committed, theme tokens used).
+
 ---
 
 ## Phase A — Environment and API contract
@@ -66,25 +138,100 @@ Choose one approach and document it:
 
 Registration is **two separate UX paths** (different pages/components and API calls)—do **not** use one form with a “role” toggle for production.
 
-### Step C1a — Client signup (`/register` or `/signup`)
+**Stitch (project `9702559548791545108`):** Dedicated Fixavon screens for **client registration** (**C1a**), **verify email** (**C1c**), **plumber registration** (**C1b**), and **login** (**C2**). Use Stitch MCP + `curl -L` for hosted URLs; reuse **Phase 0** tokens on every screen.
+
+### Step C1a — Client signup
+
+Typical routes: `/register` or `/signup`.
+
+#### Stitch — Client Registration (Fixavon)
+
+| | |
+|--|--|
+| **Project ID** | `9702559548791545108` |
+| **Screen** | **Client Registration - Fixavon** |
+| **Screen ID** | `b4e85f70dda04fd18cbc2ded66367040` |
+
+1. Use **Stitch MCP** to fetch **Client Registration - Fixavon** (ids above).
+2. Download hosted URLs with e.g. `curl -L -o <local-filename> "<url-from-stitch>"`; store under e.g. `apps/web/static/register/client/`.
+3. Build the Svelte page from the export; map fields below to the layout; use Phase 0 semantic tokens only.
+
+#### Behaviour and API
 
 1. **Fields:** email, password (confirm-password optional UX-only).
 2. **Submit:** `POST /auth/register/client` with JSON `{ email, password }`.
-3. **Success:** Show **“verify your email”** state. API returns **`email_verification_token`** and expiry—until you send real email, the UI may show the token only in **development** (env-gated) or a “copy for testing” dev panel; **never** encourage displaying it in production builds.
-4. Client-side validation: mirror Step 2 rules (min password length, email shape).
+3. **Success:** Navigate to the **verify-email** experience (**Step C1c**). API returns **`email_verification_token`** and expiry—pass token into C1c via state, query, or secure handoff as appropriate; until outbound email exists, **development** builds may surface the token only behind an env gate (see **C1c**).
+4. Client-side validation: mirror API rules (min password length, email shape).
 5. Map API errors: **409** duplicate email vs **400** validation—specific messages OK here (unlike login).
 
-### Step C1b — Become a plumber (`/register/plumber`, `/apply/plumber`, or similar)
+### Step C1c — Verify email
 
-1. **Fields:** email, password, **full name**, **phone number**, **years of experience** (numeric stepper or validated input).
+Typical routes: `/verify-email`, `/register/verify`, or similar.
+
+#### Stitch — Verify Email (Fixavon)
+
+| | |
+|--|--|
+| **Project ID** | `9702559548791545108` |
+| **Screen** | **Verify Email - Fixavon** |
+| **Screen ID** | `2895e33e817143538c664b94e7538991` |
+
+1. Use **Stitch MCP** to fetch **Verify Email - Fixavon** (ids above).
+2. Download assets with `curl -L` as needed; store e.g. under `apps/web/static/verify-email/`.
+3. Implement the page from the export (instructions, token/code field, “Resend” placeholder if product adds it later).
+
+#### Behaviour and API
+
+1. **Entry:** User arrives after **C1a** success, or via **email deep link** (query param or path token) when you add real email sending.
+2. **Submit:** When the API exposes **`POST /auth/verify-email`** (see API guide follow-up), send the token from the UI per contract. Until then, this screen is still valuable for **layout and copy**; in **dev**, you may pre-fill or show the token from registration only when `import.meta.env.DEV` (or equivalent)—**never** in production builds.
+3. **Success:** Show “Email verified” and route to **login (C2)** or auto-login per product choice.
+4. **Failure:** Map **400** / **401** / **410** (expired) per API when implemented; generic friendly copy for users.
+
+### Step C1b — Become a plumber
+
+Typical routes: `/register/plumber`, `/apply/plumber`, or similar.
+
+#### Stitch — Plumber Registration (Fixavon)
+
+Implement this flow from the **Stitch** export so the plumber apply experience matches product design (reuse **Phase 0** tokens).
+
+| | |
+|--|--|
+| **Project ID** | `9702559548791545108` |
+| **Screen** | **Plumber Registration - Fixavon** |
+| **Screen ID** | `2c2497ba2dee4162a6abd45a76f45ff0` |
+
+1. Use **Stitch MCP** in Cursor to fetch images and code for **Plumber Registration - Fixavon** (ids above).
+2. Download hosted URLs with e.g. `curl -L -o <local-filename> "<url-from-stitch>"`; store under e.g. `apps/web/static/register/plumber/` or your Stitch asset folder.
+3. Build the Svelte page from the export: map fields below to the Stitch layout; keep semantic colors/typography from Phase 0 (no one-off palette).
+
+#### Behaviour and API
+
+1. **Fields:** email, password, **full name**, **phone number**, **years of experience** (numeric stepper or validated input)—must match API body.
 2. **Submit:** `POST /auth/register/plumber` with JSON matching the API guide.
 3. **Success:** distinct confirmation (e.g. “Application received” or redirect to login)—copy should reflect your policy (instant access vs pending admin approval if you add that later).
-4. Validation: phone format and non-negative years aligned with API; full name length bounds.
+4. **Validation:** phone format and non-negative years aligned with API; full name length bounds.
 5. Same error-mapping policy as client signup for 409/400.
 
 ### Step C2 — Login page
 
-1. Form: email, password.
+Typical routes: `/login`, `/sign-in`, or similar.
+
+#### Stitch — Login (Fixavon)
+
+| | |
+|--|--|
+| **Project ID** | `9702559548791545108` |
+| **Screen** | **Login - Fixavon** |
+| **Screen ID** | `3d5928e9ca844ea9a955ca21a06f0f52` |
+
+1. Use **Stitch MCP** to fetch **Login - Fixavon** (ids above).
+2. Download hosted URLs with `curl -L`; store e.g. under `apps/web/static/login/`.
+3. Build the Svelte page from the export; link **“Sign up”** / **“Become a plumber”** to **C1a** / **C1b** routes; use Phase 0 tokens.
+
+#### Behaviour and API
+
+1. **Form:** email, password.
 2. On submit: `POST /auth/login` with credentials; API sets refresh cookie; response body contains access token.
 3. Store access token per Step B2; then either:
    - Fetch `GET /auth/me` immediately to populate user store, or

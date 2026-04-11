@@ -11,6 +11,26 @@
 
 Coordinate with the API guide so **logout**, **rotation**, and **revocation** work for the chosen approach.
 
+**Order:** Complete **Phase MS (design system)** in parallel with or immediately after web **Phase 0** so **mobile uses the same colors and tokens** as SvelteKit—one palette for both clients.
+
+---
+
+## Phase MS — Design system (shared with web)
+
+Native UI must match the **Stitch**-driven design system used on the web. Do **not** invent a separate mobile-only color scheme unless product explicitly asks for it.
+
+### Step MS.1 — Same sources as frontend
+
+1. Follow [implementation_001_auth_frontend.md — Phase 0](./implementation_001_auth_frontend.md#phase-0--design-system-google-stitch) for Stitch MCP workflow and downloads.
+2. **Project ID:** `9702559548791545108`
+3. **Design System screen:** `asset-stub-assets-547841dc1b4545db8471e31333de0ce8-1775829756314`
+4. Use `curl -L` (or equivalent) for any hosted asset URLs Stitch returns; keep a **single token source** (e.g. shared `tokens.json` or copy the web app’s CSS variables into a RN theme module).
+
+### Step MS.2 — Apply in Expo
+
+1. Map semantic colors into your RN theme (constants, NativeWind, Tamagui, etc.) using the **same names and hex values** as the web app.
+2. When Stitch exports update, update **web first** (Phase 0.2), then sync mobile in one pass.
+
 ---
 
 ## Phase M0 — Decision record (do this first)
@@ -90,13 +110,25 @@ Use **two registration flows** (separate screens/stacks), matching the API and w
 
 ### Step M4.1a — Client signup
 
+**Visual reference (web Stitch):** **Client Registration - Fixavon** (project `9702559548791545108`, screen ID `b4e85f70dda04fd18cbc2ded66367040`)—[frontend Step C1a](./implementation_001_auth_frontend.md#step-c1a--client-signup). Reuse **Phase MS** tokens.
+
 1. **Fields:** email, password (and optional confirm-password in UI only).
 2. **API:** `POST /auth/register/client`.
-3. **Success:** Navigate to **email verification** messaging; optionally show verification token **only in __DEV__** builds—never in production store builds.
+3. **Success:** Navigate to **email verification** (**M4.1c**); optionally show verification token **only in __DEV__** builds—never in production store builds.
 4. Validation aligned with API (password length, email shape).
 5. Map **409** / **400** like web.
 
+### Step M4.1c — Verify email
+
+**Visual reference (web Stitch):** **Verify Email - Fixavon** (`2895e33e817143538c664b94e7538991`)—[frontend Step C1c](./implementation_001_auth_frontend.md#step-c1c--verify-email). Same project ID as other Fixavon screens.
+
+1. **Entry:** After client signup or from a deep link when email sending exists.
+2. **API:** Wire **`POST /auth/verify-email`** when the backend implements it; until then, dev-only token entry aligned with web **C1c**.
+3. **Success:** Navigate to login or main stack per product; **failure:** map API errors when available.
+
 ### Step M4.1b — Become a plumber
+
+**Visual reference (web Stitch):** The web guide implements **Plumber Registration - Fixavon** (project `9702559548791545108`, screen ID `2c2497ba2dee4162a6abd45a76f45ff0`)—see [implementation_001_auth_frontend.md — Step C1b](./implementation_001_auth_frontend.md#step-c1b--become-a-plumber). Reuse **Phase MS** colors/tokens; mirror field order and hierarchy. Add a **Stitch mobile** screen for this flow when available, or adapt from the desktop export.
 
 1. **Fields:** email, password, **full name**, **phone**, **years of experience**.
 2. **API:** `POST /auth/register/plumber`.
@@ -104,6 +136,8 @@ Use **two registration flows** (separate screens/stacks), matching the API and w
 4. Validate phone and non-negative years per API contract.
 
 ### Step M4.2 — Login
+
+**Visual reference (web Stitch):** **Login - Fixavon** (`3d5928e9ca844ea9a955ca21a06f0f52`)—[frontend Step C2](./implementation_001_auth_frontend.md#step-c2--login-page). Same project `9702559548791545108`.
 
 1. `POST /auth/login`; capture access token from JSON.
 2. If cookie-based refresh: confirm subsequent `/auth/refresh` works without extra setup.
@@ -166,7 +200,7 @@ Use **two registration flows** (separate screens/stacks), matching the API and w
 
 ## Phase M7 — Testing checklist
 
-- [ ] **Client** signup → verification UX (dev token handling if applicable).
+- [ ] **Client** signup → **verify-email** screen (Stitch **Verify Email - Fixavon**; dev token handling if applicable).
 - [ ] **Plumber** signup with full profile → success path.
 - [ ] Login → call protected endpoint → success.
 - [ ] Kill app → reopen → still logged in (refresh path works).
@@ -180,7 +214,7 @@ Use **two registration flows** (separate screens/stacks), matching the API and w
 ## Mobile deliverables checklist
 
 - [ ] Documented choice: cookie jar vs native refresh contract.
-- [ ] **Two registration screens** (client vs become plumber) wired to the correct endpoints.
+- [ ] **Client** signup, **verify-email**, and **plumber** signup screens (see **M4.1a** / **M4.1c** / **M4.1b**) wired to the correct endpoints.
 - [ ] API client with Bearer + refresh retry.
 - [ ] Secure storage for any long-lived secret (native path).
 - [ ] Navigation split authenticated vs not.
