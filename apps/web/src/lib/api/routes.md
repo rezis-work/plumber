@@ -2,6 +2,8 @@
 
 Base path: `/auth` on the Rust API (default **http://127.0.0.1:3001**). With the Vite dev proxy, call **same-origin** paths `/auth/...` from the browser.
 
+**Typed client:** [`client.ts`](./client.ts) (`authLogin`, `authRefresh`, `authLogout`, `authLogoutAll`, `authMe`) and [`types.ts`](./types.ts).
+
 | Method | Path | Notes |
 |--------|------|--------|
 | `POST` | `/auth/register/client` | JSON `{ email, password }` |
