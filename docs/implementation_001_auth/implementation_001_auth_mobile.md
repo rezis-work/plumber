@@ -7,7 +7,7 @@
 1. **Preferred alignment with API (if feasible):** Use an HTTP client that **persists cookies** for your API domain (e.g. OkHttp cookie jar on Android, shared cookie store if using a library that supports it) and send `credentials`/cookie headers consistently—still verify Expo/React Native networking stack supports this for your API host.
 2. **Common pragmatic approach:** Keep API as designed for web (httpOnly refresh cookie), and add a **mobile-specific** refresh mechanism (e.g. refresh token in JSON body or `Authorization` header) **only for native clients**—this is a **product/API decision** and must be implemented deliberately with equivalent security (rotation, revocation, storage in Keychain/Keystore via SecureStore).
 
-**This guide assumes you will either (A) make cookie jar work end-to-end, or (B) extend the API with a parallel, equally secure native refresh path.** Document the choice before implementation.
+**This guide assumes you will either (A) make cookie jar work end-to-end, or (B) extend the API with a parallel, equally secure native refresh path.** The choice for this repo is recorded in **[ADR 002 — Mobile refresh transport](./adr_002_mobile_refresh_transport.md)** (**Option B**, native JSON refresh + **expo-secure-store**).
 
 Coordinate with the API guide so **logout**, **rotation**, and **revocation** work for the chosen approach.
 
@@ -64,10 +64,14 @@ Build **native** layouts from Stitch’s **mobile** exports (not the desktop-onl
 
 ## Phase M0 — Decision record (do this first)
 
+**Recorded decision:** [ADR 002 — Mobile refresh transport](./adr_002_mobile_refresh_transport.md) (**Option B** — native refresh in JSON + **SecureStore**; Option A cookie-jar not pursued for v1). Follow that ADR for **logout / refresh / 401 retry** behavior and the **API contract intent** (to be implemented in the API alongside mobile M3–M4).
+
 ### Step M0.1 — Choose refresh transport for native
 
 1. **Option Cookie-jar:** API unchanged; mobile HTTP client stores `Set-Cookie` and sends cookies on `/auth/refresh` and `/auth/logout`.
 2. **Option Native refresh token:** API adds endpoints or negotiates refresh token in response body for mobile registration/login only; store refresh token in **expo-secure-store** (or react-native-keychain); rotation updates stored refresh.
+
+**This repo:** **Option 2** — see ADR 002 for rationale, mobile flow summary, and intended API extensions.
 
 ### Step M0.2 — Threat model parity
 
@@ -76,6 +80,8 @@ Regardless of option:
 - Refresh token must be **rotatable** and **revocable** server-side.
 - Access token remains short-lived in memory (secure volatile storage).
 - Never log passwords or tokens.
+
+**ADR 002 checklist:** Each item is explicitly marked **satisfied** for Option B (rotation, revocation, access-in-memory, no token logging), with implementation obligations on mobile and API.
 
 ---
 
@@ -90,6 +96,8 @@ Regardless of option:
 
 1. Production must use HTTPS.
 2. Android cleartext and iOS ATS: document exceptions only for local dev if needed.
+
+**M1 in this repo:** Copy `apps/mobile/.env.example` to `apps/mobile/.env` and set **`EXPO_PUBLIC_API_URL`** to your HTTPS API origin (e.g. ngrok; no trailing slash). Use `apps/mobile/src/config/apiBaseUrl.ts` (`apiBaseUrl`, `apiUrl`). `apps/mobile/app.config.ts` merges `app.json` and mirrors the URL in `extra.apiUrl`. See `apps/mobile/README.md` for TLS/ngrok notes.
 
 ---
 

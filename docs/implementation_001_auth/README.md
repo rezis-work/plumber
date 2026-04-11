@@ -10,6 +10,13 @@ This folder contains **step-by-step implementation guides** (instructions only, 
 | [implementation_001_auth_frontend.md](./implementation_001_auth_frontend.md) | SvelteKit web app: API client, tokens, cookies, protected routes, UX |
 | [implementation_001_auth_mobile.md](./implementation_001_auth_mobile.md) | Expo/React Native app: secure storage, API client, session lifecycle |
 
+## ADRs
+
+| ADR | Topic |
+|-----|--------|
+| [adr_001_cors_and_cookies.md](./adr_001_cors_and_cookies.md) | Web: Vite proxy, CORS, SameSite / Secure refresh cookies |
+| [adr_002_mobile_refresh_transport.md](./adr_002_mobile_refresh_transport.md) | Mobile: **Option B** native refresh (JSON + SecureStore); API contract intent |
+
 Read the API guide before frontend or mobile so contracts and security rules stay aligned.
 
 ## Database (PostgreSQL on Neon)
@@ -44,7 +51,7 @@ Read the API guide before frontend or mobile so contracts and security rules sta
 2. **Design system (first frontend step):** Use **Google Stitch** (MCP in Cursor)—project `9702559548791545108`, **Design System** (`asset-stub-assets-547841dc1b4545db8471e31333de0ce8-1775829756314`). Export tokens; `curl -L` for hosted URLs. Align **mobile** tokens: [implementation_001_auth_mobile.md](./implementation_001_auth_mobile.md) **Phase MS**.
 3. **Marketing landing (second frontend step):** Same Stitch project—**Fixavon Landing Page - Desktop** (`54764d32cd774878a96490bdfc6b3f72`). Public SvelteKit route, CTAs to auth flows. See [implementation_001_auth_frontend.md](./implementation_001_auth_frontend.md) **Phase 0B**.
 4. Implement **frontend** auth (API client, CORS/cookies, protected routes) per the frontend guide. **Stitch Fixavon screens (same project):** client signup [C1a](implementation_001_auth_frontend.md#step-c1a--client-signup) (`b4e85f70dda04fd18cbc2ded66367040`), verify email [C1c](implementation_001_auth_frontend.md#step-c1c--verify-email) (`2895e33e817143538c664b94e7538991`), plumber [C1b](implementation_001_auth_frontend.md#step-c1b--become-a-plumber) (`2c2497ba2dee4162a6abd45a76f45ff0`), login [C2](implementation_001_auth_frontend.md#step-c2--login-page) (`3d5928e9ca844ea9a955ca21a06f0f52`).
-5. Implement **mobile**, resolving cookie vs secure-storage constraints as described in the mobile guide, reusing the same design tokens as the web app.
+5. Implement **mobile** per [ADR 002](./adr_002_mobile_refresh_transport.md) and the mobile guide (**native refresh + SecureStore**; API extensions as documented there), reusing the same design tokens as the web app.
 
 ## Long-term product note
 
