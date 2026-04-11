@@ -23,6 +23,7 @@ pub mod routes;
 pub mod service;
 pub mod service_token;
 pub mod verification;
+pub mod verify_email_error;
 
 pub use auth_context::AuthContext;
 pub use auth_forbidden::AuthForbidden;

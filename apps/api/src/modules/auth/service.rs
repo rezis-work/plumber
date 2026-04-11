@@ -10,6 +10,7 @@ use super::auth_context::AuthContext;
 use super::dto::{
     LoginRequest, LoginResponse, MeResponse, RegisterClientRequest, RegisterClientResponse,
     RegisterPlumberRequest, RegisterPlumberResponse, PlumberProfileResponse, UserResponse,
+    VerifyEmailRequest, VerifyEmailResponse,
 };
 use super::error::AuthError;
 use super::login_error::LoginError;
@@ -21,6 +22,7 @@ use super::refresh_token_hash::{
     hash_refresh_jwt_for_storage, refresh_token_hash_hex_eq_constant_time,
 };
 use super::register_error::RegisterError;
+use super::verify_email_error::VerifyEmailError;
 use super::registration::{normalize_and_validate_phone, validate_full_name, validate_years_of_experience};
 use super::verification::EmailVerificationConfig;
 
@@ -41,6 +43,67 @@ fn is_unique_violation(e: &sqlx::Error) -> bool {
         return db.code().as_deref() == Some("23505");
     }
     false
+}
+
+fn validate_verification_token_hex(raw: &str) -> Result<&str, VerifyEmailError> {
+    let t = raw.trim();
+    if t.is_empty() {
+        return Err(VerifyEmailError::Validation {
+            message: "token is required".to_string(),
+        });
+    }
+    if t.len() != 64 || !t.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(VerifyEmailError::Validation {
+            message: "invalid verification token".to_string(),
+        });
+    }
+    Ok(t)
+}
+
+pub async fn verify_email(
+    state: &AppState,
+    body: VerifyEmailRequest,
+) -> Result<VerifyEmailResponse, VerifyEmailError> {
+    let token = validate_verification_token_hex(&body.token)?;
+    let token_hash = state
+        .email_verification
+        .hash_raw_token_hex(token)
+        .map_err(|_| VerifyEmailError::Validation {
+            message: "invalid verification token".to_string(),
+        })?;
+
+    let user = state
+        .users
+        .find_by_email_verification_token_hash(&token_hash)
+        .await
+        .map_err(|_| VerifyEmailError::Internal)?
+        .ok_or(VerifyEmailError::InvalidToken)?;
+
+    if user.is_email_verified {
+        return Ok(VerifyEmailResponse {
+            verified: false,
+            already_verified: true,
+        });
+    }
+
+    let Some(expires_at) = user.email_verification_expires_at else {
+        return Err(VerifyEmailError::InvalidToken);
+    };
+
+    if Utc::now() > expires_at {
+        return Err(VerifyEmailError::TokenExpired);
+    }
+
+    state
+        .users
+        .mark_email_verified_clear_verification(user.id)
+        .await
+        .map_err(|_| VerifyEmailError::Internal)?;
+
+    Ok(VerifyEmailResponse {
+        verified: true,
+        already_verified: false,
+    })
 }
 
 pub async fn register_client(
@@ -821,6 +884,140 @@ mod tests {
         .expect("inactive");
 
         assert_eq!(err.into_response().status(), StatusCode::FORBIDDEN);
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test verify_email_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn verify_email_success_clears_token(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::VerifyEmailRequest;
+
+        let state = test_app_state(pool);
+        let reg = register_client(
+            &state,
+            RegisterClientRequest {
+                email: "verify-ok@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("register");
+
+        let out = verify_email(
+            &state,
+            VerifyEmailRequest {
+                token: reg.email_verification_token.clone(),
+            },
+        )
+        .await
+        .expect("verify");
+
+        assert!(out.verified);
+        assert!(!out.already_verified);
+
+        let stored = state
+            .users
+            .find_by_email("verify-ok@example.com")
+            .await?
+            .unwrap();
+        assert!(stored.is_email_verified);
+        assert!(stored.email_verification_token_hash.is_none());
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test verify_email_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn verify_email_wrong_token_unauthorized(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::VerifyEmailRequest;
+        use crate::modules::auth::verify_email_error::VerifyEmailError;
+
+        let state = test_app_state(pool);
+        let err = verify_email(
+            &state,
+            VerifyEmailRequest {
+                token: "a".repeat(64),
+            },
+        )
+        .await
+        .err()
+        .expect("wrong token");
+        assert!(matches!(err, VerifyEmailError::InvalidToken));
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test verify_email_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn verify_email_expired_gone(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::VerifyEmailRequest;
+        use crate::modules::auth::verify_email_error::VerifyEmailError;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let raw_hex = EmailVerificationConfig::generate_raw_token_hex();
+        let token_hash = state
+            .email_verification
+            .hash_raw_token_hex(&raw_hex)
+            .expect("hash");
+        let past = Utc::now() - Duration::hours(1);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        state
+            .users
+            .create_user(CreateUserParams {
+                email: "verify-expired@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: true,
+                is_email_verified: false,
+                email_verification_token_hash: Some(&token_hash),
+                email_verification_expires_at: Some(past),
+            })
+            .await?;
+
+        let err = verify_email(
+            &state,
+            VerifyEmailRequest { token: raw_hex },
+        )
+        .await
+        .err()
+        .expect("expired");
+        assert!(matches!(err, VerifyEmailError::TokenExpired));
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test verify_email_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn verify_email_idempotent_when_already_verified(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::VerifyEmailRequest;
+
+        let state = test_app_state(pool);
+        let reg = register_client(
+            &state,
+            RegisterClientRequest {
+                email: "verify-idem@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("register");
+
+        sqlx::query("UPDATE users SET is_email_verified = true WHERE email = $1")
+            .bind("verify-idem@example.com")
+            .execute(state.users.pool())
+            .await?;
+
+        let out = verify_email(
+            &state,
+            VerifyEmailRequest {
+                token: reg.email_verification_token,
+            },
+        )
+        .await
+        .expect("idem");
+
+        assert!(!out.verified);
+        assert!(out.already_verified);
+
         Ok(())
     }
 }

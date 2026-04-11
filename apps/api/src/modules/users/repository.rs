@@ -123,6 +123,39 @@ impl UserRepository {
         .await
     }
 
+    pub async fn find_by_email_verification_token_hash(
+        &self,
+        token_hash: &str,
+    ) -> Result<Option<User>, sqlx::Error> {
+        let q = format!(
+            "SELECT {USER_COLUMNS} FROM users WHERE email_verification_token_hash = $1"
+        );
+        sqlx::query_as::<_, User>(&q)
+            .bind(token_hash)
+            .fetch_optional(&self.pool)
+            .await
+    }
+
+    pub async fn mark_email_verified_clear_verification(
+        &self,
+        user_id: Uuid,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            UPDATE users SET
+                is_email_verified = true,
+                email_verification_token_hash = NULL,
+                email_verification_expires_at = NULL,
+                updated_at = NOW()
+            WHERE id = $1
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn find_plumber_profile_by_user_id(
         &self,
         user_id: Uuid,

@@ -84,6 +84,18 @@ pub struct RegisterPlumberResponse {
     pub profile: PlumberProfileResponse,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct VerifyEmailRequest {
+    pub token: String,
+}
+
+/// `POST /auth/verify-email` success body: exactly one of `verified` / `already_verified` is true.
+#[derive(Debug, Serialize)]
+pub struct VerifyEmailResponse {
+    pub verified: bool,
+    pub already_verified: bool,
+}
+
 impl From<crate::modules::users::User> for UserResponse {
     fn from(u: crate::modules::users::User) -> Self {
         Self {

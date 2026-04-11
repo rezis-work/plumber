@@ -9,7 +9,7 @@ use crate::AppState;
 use super::auth_user::AuthUser;
 use super::dto::{
     LoginRequest, LogoutAllResponse, MeResponse, RegisterClientRequest, RegisterClientResponse,
-    RegisterPlumberRequest, RegisterPlumberResponse,
+    RegisterPlumberRequest, RegisterPlumberResponse, VerifyEmailRequest, VerifyEmailResponse,
 };
 use super::login_error::LoginError;
 use super::logout_error::LogoutError;
@@ -17,6 +17,7 @@ use super::me_error::MeError;
 use super::refresh_error::RefreshError;
 use super::register_error::RegisterError;
 use super::service;
+use super::verify_email_error::VerifyEmailError;
 
 pub async fn register_client(
     State(state): State<AppState>,
@@ -32,6 +33,14 @@ pub async fn register_plumber(
 ) -> Result<(StatusCode, Json<RegisterPlumberResponse>), RegisterError> {
     let res = service::register_plumber(&state, body).await?;
     Ok((StatusCode::CREATED, Json(res)))
+}
+
+pub async fn verify_email(
+    State(state): State<AppState>,
+    Json(body): Json<VerifyEmailRequest>,
+) -> Result<(StatusCode, Json<VerifyEmailResponse>), VerifyEmailError> {
+    let res = service::verify_email(&state, body).await?;
+    Ok((StatusCode::OK, Json(res)))
 }
 
 pub async fn login(

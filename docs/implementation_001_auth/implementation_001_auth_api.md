@@ -184,14 +184,34 @@ Add a SQLx migration **before** implementing the handlers:
 
 - `POST /auth/register/client`
 - `POST /auth/register/plumber`
+- `POST /auth/verify-email` — consume client email verification token (see below).
 
 Do **not** expose a single `POST /auth/register` with a `role` field for end users—avoids “admin” injection and keeps contracts explicit.
 
 ---
 
-### Follow-up (document only; not part of Step 3 minimum)
+### `POST /auth/verify-email`
 
-- **`POST /auth/verify-email`** with body `{ "token": "..." }`: look up by hash, check expiry, set `is_email_verified = true`, clear verification columns.
+**Request JSON:** `{ "token": "<64-char hex>" }` (same encoding as `email_verification_token` from client register). Whitespace around the token is trimmed; wrong length or non-hex → **400** `validation_error`.
+
+**Success 200 JSON:**
+
+- `{ "verified": true, "already_verified": false }` — user was unverified; row updated (`is_email_verified = true`, verification hash and expiry cleared).
+- `{ "verified": false, "already_verified": true }` — user row still matched the token hash but was already verified (idempotent).
+
+**Errors (JSON body shape `error` + `message`, consistent with other auth routes):**
+
+| Status | `error` | When |
+|--------|---------|------|
+| 400 | `validation_error` | Missing/invalid token format |
+| 401 | `invalid_token` | No user holds the HMAC hash for this token |
+| 410 | `token_expired` | Token past `email_verification_expires_at` |
+| 500 | `internal_error` | Unexpected failure |
+
+---
+
+### Follow-up (document only)
+
 - **Login policy:** decide whether **unverified clients** may log in (e.g. allow login but gate features via `is_email_verified` from `/auth/me`) or block login until verified—document in Step 6 when implementing login.
 
 ### Verification (Step 3)
@@ -474,7 +494,7 @@ Implement composable checks (functions or tower layers) such as:
 |--------|------|------|---------|
 | POST | `/auth/register/client` | No | Register client (email + password); returns email verification token |
 | POST | `/auth/register/plumber` | No | Become plumber (email, password, full name, phone, years experience) |
-| POST | `/auth/verify-email` | No | (Follow-up) Consume email verification token |
+| POST | `/auth/verify-email` | No | Consume email verification token (`{ "token" }`); see **POST /auth/verify-email** above |
 | POST | `/auth/login` | No | Login; set refresh cookie |
 | POST | `/auth/refresh` | Cookie | Rotate refresh; new access |
 | POST | `/auth/logout` | Optional cookie | Revoke session; clear cookie |

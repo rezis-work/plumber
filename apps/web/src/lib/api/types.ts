@@ -54,3 +54,13 @@ export interface RegisterClientResponse extends UserResponse {
 	email_verification_token: string;
 	email_verification_expires_at: string;
 }
+
+export interface VerifyEmailRequest {
+	token: string;
+}
+
+/** `POST /auth/verify-email` — exactly one of `verified` / `already_verified` is true on success. */
+export interface VerifyEmailResponse {
+	verified: boolean;
+	already_verified: boolean;
+}

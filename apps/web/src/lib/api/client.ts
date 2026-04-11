@@ -5,7 +5,9 @@ import type {
 	LogoutAllResponse,
 	MeResponse,
 	RegisterClientRequest,
-	RegisterClientResponse
+	RegisterClientResponse,
+	VerifyEmailRequest,
+	VerifyEmailResponse
 } from './types';
 
 export class ApiError extends Error {
@@ -123,6 +125,14 @@ export function authMe(accessToken: string): Promise<MeResponse> {
 
 export function authRegisterClient(body: RegisterClientRequest): Promise<RegisterClientResponse> {
 	return apiRequest<RegisterClientResponse>('/auth/register/client', {
+		method: 'POST',
+		jsonBody: body,
+		credentials: 'omit'
+	});
+}
+
+export function authVerifyEmail(body: VerifyEmailRequest): Promise<VerifyEmailResponse> {
+	return apiRequest<VerifyEmailResponse>('/auth/verify-email', {
 		method: 'POST',
 		jsonBody: body,
 		credentials: 'omit'
