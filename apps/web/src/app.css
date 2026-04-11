@@ -1,0 +1,83 @@
+/*
+ * Design tokens — Phase 0 (Google Stitch).
+ * Theme: "Caucasus Blue" / Fixavon (see static/design/STITCH_INSTRUCTIONS.md).
+ * Project ID: 9702559548791545108
+ * Design system asset: assets/547841dc1b4545db8471e31333de0ce8
+ * Machine-readable palette: src/lib/design/tokens.json (regenerate via Stitch MCP list_design_systems).
+ */
+
+:root {
+	/* Core semantic colors (mapped from Stitch namedColors) */
+	--color-primary: #0050cb;
+	--color-primary-container: #0066ff;
+	--color-on-primary: #ffffff;
+	--color-secondary: #006b5c;
+	--color-secondary-container: #68fadd;
+	--color-on-secondary-container: #007261;
+	--color-tertiary: #006733;
+	--color-surface: #f8f9ff;
+	--color-surface-container-low: #eff4ff;
+	--color-surface-elevated: #ffffff;
+	--color-surface-container-high: #dce9ff;
+	--color-text: #0b1c30;
+	--color-text-muted: #424656;
+	--color-outline: #727687;
+	--color-outline-variant: #c2c6d8;
+	--color-error: #ba1a1a;
+	--color-on-error: #ffffff;
+	--color-success: #006733;
+	--color-inverse-surface: #213145;
+	--color-inverse-on-surface: #eaf1ff;
+
+	/* Aliases for early app.css consumers */
+	--color-border: var(--color-outline-variant);
+	--color-primary-bright: var(--color-primary-container);
+
+	/* Typography — Inter (loaded in app.html) */
+	--font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--text-base: 1rem;
+	--text-sm: 0.875rem;
+	--text-lg: 1.125rem;
+	--text-display: 3.5rem;
+	--font-weight-normal: 400;
+	--font-weight-medium: 500;
+	--font-weight-semibold: 600;
+	--font-weight-bold: 700;
+
+	/* Radius — ROUND_EIGHT baseline + card/button scale from design md */
+	--radius-sm: 0.25rem;
+	--radius-md: 0.5rem;
+	--radius-lg: 1rem;
+	--radius-xl: 1.5rem;
+
+	/* Spacing (spacious scale; design system spacingScale 3) */
+	--space-2: 0.5rem;
+	--space-4: 1rem;
+	--space-6: 1.5rem;
+	--space-8: 2rem;
+	--space-12: 3rem;
+	--space-16: 4rem;
+	--space-24: 6rem;
+
+	/* Elevation — ambient shadow from Fixavon guidelines */
+	--shadow-ambient: 0px 20px 40px rgba(11, 28, 48, 0.06);
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	font-family: var(--font-sans);
+	font-size: var(--text-base);
+	line-height: 1.6;
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+	color: var(--color-text);
+	background-color: var(--color-surface);
+}

@@ -1,0 +1,218 @@
+<script lang="ts">
+	let menuOpen = $state(false);
+
+	function closeMenu() {
+		menuOpen = false;
+	}
+</script>
+
+<header class="nav lp-glass-nav">
+	<nav class="nav__inner lp-wrap">
+		<a class="nav__logo" href="/" onclick={closeMenu}>Fixavon</a>
+		<div class="nav__links">
+			<a class="nav__link nav__link--active" href="#services">Services</a>
+			<a class="nav__link" href="#for-plumbers">For Plumbers</a>
+			<a class="nav__link" href="#benefits">Benefits</a>
+			<a class="nav__link" href="#faq">FAQ</a>
+		</div>
+		<div class="nav__actions">
+			<a class="nav__login" href="/login">Log in</a>
+			<a class="nav__plumber lg-only" href="/register/plumber">Join as Plumber</a>
+			<a class="lp-btn lp-btn--primary lp-btn--primary-sm" href="/register">Book Now</a>
+		</div>
+		<button
+			type="button"
+			class="nav__menu-btn md-hide"
+			aria-expanded={menuOpen}
+			aria-controls="nav-mobile-panel"
+			aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+			onclick={() => (menuOpen = !menuOpen)}
+		>
+			{menuOpen ? '✕' : '☰'}
+		</button>
+	</nav>
+	{#if menuOpen}
+		<div id="nav-mobile-panel" class="nav__mobile lp-glass-nav md-hide-panel">
+			<a class="nav__mobile-link" href="#services" onclick={closeMenu}>Services</a>
+			<a class="nav__mobile-link" href="#for-plumbers" onclick={closeMenu}>For Plumbers</a>
+			<a class="nav__mobile-link" href="#benefits" onclick={closeMenu}>Benefits</a>
+			<a class="nav__mobile-link" href="#faq" onclick={closeMenu}>FAQ</a>
+			<a class="nav__mobile-link" href="/login" onclick={closeMenu}>Log in</a>
+			<a class="nav__mobile-link" href="/register/plumber" onclick={closeMenu}>Join as Plumber</a>
+			<a class="nav__mobile-cta lp-btn lp-btn--primary lp-btn--primary-sm" href="/register" onclick={closeMenu}
+				>Book Now</a
+			>
+		</div>
+	{/if}
+</header>
+
+<style>
+	.nav {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 50;
+		height: 5rem;
+	}
+
+	.nav__inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 5rem;
+		gap: var(--space-4);
+		font-size: var(--text-base);
+		font-weight: var(--font-weight-medium);
+	}
+
+	.nav__logo {
+		font-size: 1.5rem;
+		font-weight: 900;
+		color: var(--color-primary);
+		letter-spacing: -0.02em;
+		text-decoration: none;
+	}
+
+	.nav__links {
+		display: none;
+		align-items: center;
+		gap: var(--space-8);
+	}
+
+	@media (min-width: 768px) {
+		.nav__links {
+			display: flex;
+		}
+	}
+
+	.nav__link {
+		color: var(--color-text);
+		text-decoration: none;
+		transition: color 0.2s ease;
+	}
+
+	.nav__link:hover {
+		color: var(--color-primary-container);
+	}
+
+	.nav__link--active {
+		color: var(--color-primary);
+		font-weight: var(--font-weight-bold);
+		border-bottom: 2px solid var(--color-primary);
+		padding-bottom: 0.25rem;
+	}
+
+	.nav__actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+	}
+
+	.nav__login {
+		display: none;
+		color: var(--color-text);
+		font-weight: var(--font-weight-semibold);
+		text-decoration: none;
+	}
+
+	.nav__login:hover {
+		color: var(--color-primary);
+	}
+
+	@media (min-width: 1024px) {
+		.nav__login {
+			display: inline;
+		}
+	}
+
+	.nav__plumber {
+		display: none;
+		color: var(--color-text);
+		font-weight: var(--font-weight-semibold);
+		text-decoration: none;
+		border: none;
+		background: none;
+		cursor: pointer;
+		font-family: inherit;
+		font-size: inherit;
+	}
+
+	.nav__plumber:hover {
+		color: var(--color-primary);
+	}
+
+	.lg-only {
+		display: none;
+	}
+
+	@media (min-width: 1024px) {
+		.lg-only {
+			display: inline;
+		}
+	}
+
+	.nav__menu-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.5rem;
+		height: 2.5rem;
+		border: none;
+		background: var(--color-surface-container-low);
+		border-radius: var(--radius-md);
+		font-size: 1.25rem;
+		cursor: pointer;
+		color: var(--color-text);
+	}
+
+	@media (min-width: 768px) {
+		.nav__menu-btn {
+			display: none;
+		}
+	}
+
+	.md-hide {
+		display: flex;
+	}
+
+	@media (min-width: 768px) {
+		.md-hide {
+			display: none;
+		}
+	}
+
+	.nav__mobile {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		padding: var(--space-4) var(--space-6) var(--space-6);
+		border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
+	}
+
+	.md-hide-panel {
+		display: flex;
+	}
+
+	@media (min-width: 768px) {
+		.md-hide-panel {
+			display: none;
+		}
+	}
+
+	.nav__mobile-link {
+		color: var(--color-text);
+		font-weight: var(--font-weight-medium);
+		text-decoration: none;
+		padding: var(--space-2) 0;
+	}
+
+	.nav__mobile-link:hover {
+		color: var(--color-primary);
+	}
+
+	.nav__mobile-cta {
+		margin-top: var(--space-2);
+		text-align: center;
+	}
+</style>
