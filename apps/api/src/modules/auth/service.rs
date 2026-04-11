@@ -8,11 +8,12 @@ use crate::AppState;
 
 use super::auth_context::AuthContext;
 use super::dto::{
-    LoginRequest, LoginResponse, RegisterClientRequest, RegisterClientResponse,
+    LoginRequest, LoginResponse, MeResponse, RegisterClientRequest, RegisterClientResponse,
     RegisterPlumberRequest, RegisterPlumberResponse, PlumberProfileResponse, UserResponse,
 };
 use super::error::AuthError;
 use super::login_error::LoginError;
+use super::me_error::MeError;
 use super::passwords::{hash_password, normalize_email, verify_password};
 use super::logout_error::LogoutError;
 use super::refresh_error::RefreshError;
@@ -349,6 +350,49 @@ pub async fn logout(state: &AppState, raw_refresh_jwt: Option<&str>) -> Result<(
     Ok(())
 }
 
+/// Revoke every refresh session for the user (Step 11). Returns count of rows updated.
+pub async fn logout_all(state: &AppState, user_id: Uuid) -> Result<u64, LogoutError> {
+    state
+        .refresh_tokens
+        .revoke_all_for_user(user_id)
+        .await
+        .map_err(|_| LogoutError::Internal)
+}
+
+/// Current user for `GET /auth/me` (Step 12): DB row + plumber profile when applicable.
+pub async fn me_profile(state: &AppState, user_id: Uuid) -> Result<MeResponse, MeError> {
+    let Some(user) = state
+        .users
+        .find_by_id(user_id)
+        .await
+        .map_err(|_| MeError::Internal)?
+    else {
+        return Err(MeError::NotFound);
+    };
+
+    let profile = if user.role == Role::Plumber {
+        state
+            .users
+            .find_plumber_profile_by_user_id(user.id)
+            .await
+            .map_err(|_| MeError::Internal)?
+            .map(PlumberProfileResponse::from)
+    } else {
+        None
+    };
+
+    Ok(MeResponse {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        is_active: user.is_active,
+        is_email_verified: user.is_email_verified,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        profile,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -616,6 +660,71 @@ mod tests {
         logout(&state, Some("not-a-jwt"))
             .await
             .expect("logout with invalid jwt");
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test logout_all_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn logout_all_revokes_two_sessions(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::LoginRequest;
+        use crate::modules::auth::refresh_error::RefreshError;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        state
+            .users
+            .create_user(CreateUserParams {
+                email: "logout-all-user@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: true,
+                is_email_verified: true,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let login_a = login(
+            &state,
+            LoginRequest {
+                email: "logout-all-user@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("login a");
+        let refresh_a = login_a.refresh_jwt.clone();
+
+        let login_b = login(
+            &state,
+            LoginRequest {
+                email: "logout-all-user@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("login b");
+        let refresh_b = login_b.refresh_jwt;
+
+        let user = state
+            .users
+            .find_by_email("logout-all-user@example.com")
+            .await?
+            .expect("user");
+
+        let n = logout_all(&state, user.id).await.expect("logout_all");
+        assert_eq!(n, 2);
+
+        assert!(matches!(
+            refresh(&state, &refresh_a).await,
+            Err(RefreshError::Unauthorized)
+        ));
+        assert!(matches!(
+            refresh(&state, &refresh_b).await,
+            Err(RefreshError::Unauthorized)
+        ));
 
         Ok(())
     }

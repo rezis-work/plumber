@@ -8,11 +8,12 @@ use crate::AppState;
 
 use super::auth_user::AuthUser;
 use super::dto::{
-    LoginRequest, MeResponse, RegisterClientRequest, RegisterClientResponse, RegisterPlumberRequest,
-    RegisterPlumberResponse,
+    LoginRequest, LogoutAllResponse, MeResponse, RegisterClientRequest, RegisterClientResponse,
+    RegisterPlumberRequest, RegisterPlumberResponse,
 };
 use super::login_error::LoginError;
 use super::logout_error::LogoutError;
+use super::me_error::MeError;
 use super::refresh_error::RefreshError;
 use super::register_error::RegisterError;
 use super::service;
@@ -107,11 +108,32 @@ pub async fn logout(
     Ok(res)
 }
 
-pub async fn me(AuthUser(ctx): AuthUser) -> Json<MeResponse> {
-    Json(MeResponse {
-        user_id: ctx.user_id,
-        role: ctx.role,
-    })
+pub async fn logout_all(
+    State(state): State<AppState>,
+    AuthUser(ctx): AuthUser,
+) -> Result<Response, LogoutError> {
+    let n = service::logout_all(&state, ctx.user_id).await?;
+
+    let cookie_str = state
+        .cookie_config
+        .refresh_clear_cookie_string()
+        .map_err(|_| LogoutError::Internal)?;
+    let cookie_header = HeaderValue::from_str(&cookie_str).map_err(|_| LogoutError::Internal)?;
+
+    let body = LogoutAllResponse {
+        sessions_revoked: n,
+    };
+    let mut res = (StatusCode::OK, Json(body)).into_response();
+    res.headers_mut().append(header::SET_COOKIE, cookie_header);
+    Ok(res)
+}
+
+pub async fn me(
+    State(state): State<AppState>,
+    AuthUser(ctx): AuthUser,
+) -> Result<Json<MeResponse>, MeError> {
+    let body = service::me_profile(&state, ctx.user_id).await?;
+    Ok(Json(body))
 }
 
 /// Step 8 RBAC verification stub; replace with a real plumber-only route when domains land.

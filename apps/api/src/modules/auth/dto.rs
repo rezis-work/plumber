@@ -17,10 +17,23 @@ pub struct LoginResponse {
     pub expires_in: u64,
 }
 
+/// Step 12 `GET /auth/me`: user from DB + optional plumber profile (no secrets).
 #[derive(Debug, Serialize)]
 pub struct MeResponse {
-    pub user_id: Uuid,
+    pub id: Uuid,
+    pub email: String,
     pub role: Role,
+    pub is_active: bool,
+    pub is_email_verified: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub profile: Option<PlumberProfileResponse>,
+}
+
+/// Step 11 `POST /auth/logout-all` success body.
+#[derive(Debug, Serialize)]
+pub struct LogoutAllResponse {
+    pub sessions_revoked: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -81,6 +94,16 @@ impl From<crate::modules::users::User> for UserResponse {
             is_email_verified: u.is_email_verified,
             created_at: u.created_at,
             updated_at: u.updated_at,
+        }
+    }
+}
+
+impl From<crate::modules::users::PlumberProfile> for PlumberProfileResponse {
+    fn from(p: crate::modules::users::PlumberProfile) -> Self {
+        Self {
+            full_name: p.full_name,
+            phone: p.phone,
+            years_of_experience: p.years_of_experience,
         }
     }
 }

@@ -122,6 +122,22 @@ impl UserRepository {
         .fetch_one(&mut **tx)
         .await
     }
+
+    pub async fn find_plumber_profile_by_user_id(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Option<PlumberProfile>, sqlx::Error> {
+        sqlx::query_as::<_, PlumberProfile>(
+            r#"
+            SELECT user_id, full_name, phone, years_of_experience
+            FROM plumber_profiles
+            WHERE user_id = $1
+            "#,
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await
+    }
 }
 
 #[cfg(test)]

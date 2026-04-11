@@ -21,6 +21,7 @@ pub fn auth_routes(state: AppState) -> Router<AppState> {
 
     let protected = Router::new()
         .route("/me", get(handler::me))
+        .route("/logout-all", post(handler::logout_all))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             require_access_token,
@@ -124,31 +125,135 @@ mod tests {
             .unwrap()
     }
 
-    #[tokio::test]
-    async fn auth_me_ok_with_valid_access_token() {
-        let jwt = JwtConfig::test_config();
-        let uid = Uuid::new_v4();
-        let token = jwt
-            .create_access_token(uid, Role::Plumber)
+    fn test_app_state(pool: PgPool) -> AppState {
+        AppState {
+            pool: pool.clone(),
+            users: UserRepository::new(pool.clone()),
+            refresh_tokens: RefreshTokenRepository::new(pool.clone()),
+            password_config: PasswordConfig::from_env(),
+            email_verification: EmailVerificationConfig {
+                secret: "integration-test-hmac-key".to_string(),
+                ttl_hours: 48,
+            },
+            jwt_config: JwtConfig::from_env(),
+            cookie_config: CookieConfig::from_env(),
+        }
+    }
+
+    fn app_with_pool(state: AppState) -> Router {
+        Router::new()
+            .nest("/auth", auth_routes(state.clone()))
+            .with_state(state)
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test auth_me_ok_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn auth_me_ok_client_profile_null(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::passwords::hash_password;
+        use crate::modules::users::CreateUserParams;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        let user = state
+            .users
+            .create_user(CreateUserParams {
+                email: "me-client@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: true,
+                is_email_verified: true,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let token = state
+            .jwt_config
+            .create_access_token(user.id, Role::Client)
             .expect("access token");
 
-        let res = app(jwt)
-            .oneshot(
-                Request::builder()
-                    .method("GET")
-                    .uri("/auth/me")
-                    .header(AUTHORIZATION, format!("Bearer {}", token))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+        let res = app_with_pool(state)
+            .oneshot(bearer_get("/auth/me", &token))
             .await
             .expect("oneshot");
 
         assert_eq!(res.status(), StatusCode::OK);
         let body = res.into_body().collect().await.unwrap().to_bytes();
-        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(v["user_id"], json!(uid.to_string()));
+        let v: serde_json::Value = serde_json::from_slice(&body).expect("json");
+        assert_eq!(v["id"], json!(user.id.to_string()));
+        assert_eq!(v["email"], json!("me-client@example.com"));
+        assert_eq!(v["role"], json!("client"));
+        assert_eq!(v["is_active"], json!(true));
+        assert_eq!(v["is_email_verified"], json!(true));
+        assert_eq!(v["profile"], serde_json::Value::Null);
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test auth_me_ok_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn auth_me_ok_plumber_with_profile(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::RegisterPlumberRequest;
+        use crate::modules::auth::service;
+
+        let state = test_app_state(pool);
+        let reg = service::register_plumber(
+            &state,
+            RegisterPlumberRequest {
+                email: "me-plumber@example.com".to_string(),
+                password: "password123".to_string(),
+                full_name: "Pat Pipe".to_string(),
+                phone: "+1 555 0100".to_string(),
+                years_of_experience: 3,
+            },
+        )
+        .await
+        .expect("register_plumber");
+
+        let token = state
+            .jwt_config
+            .create_access_token(reg.user.id, Role::Plumber)
+            .expect("access token");
+
+        let res = app_with_pool(state)
+            .oneshot(bearer_get("/auth/me", &token))
+            .await
+            .expect("oneshot");
+
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        let v: serde_json::Value = serde_json::from_slice(&body).expect("json");
+        assert_eq!(v["id"], json!(reg.user.id.to_string()));
+        assert_eq!(v["email"], json!("me-plumber@example.com"));
         assert_eq!(v["role"], json!("plumber"));
+        assert_eq!(v["profile"]["full_name"], json!("Pat Pipe"));
+        assert_eq!(v["profile"]["phone"], json!("+15550100"));
+        assert_eq!(v["profile"]["years_of_experience"], json!(3));
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test auth_me_404_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn auth_me_404_valid_token_user_missing(pool: PgPool) -> sqlx::Result<()> {
+        let state = test_app_state(pool);
+        let ghost = Uuid::new_v4();
+        let token = state
+            .jwt_config
+            .create_access_token(ghost, Role::Client)
+            .expect("access token");
+
+        let res = app_with_pool(state)
+            .oneshot(bearer_get("/auth/me", &token))
+            .await
+            .expect("oneshot");
+
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        let v: serde_json::Value = serde_json::from_slice(&body).expect("json");
+        assert_eq!(v["error"], json!("not_found"));
+
+        Ok(())
     }
 
     #[tokio::test]
@@ -159,6 +264,25 @@ mod tests {
                 Request::builder()
                     .method("GET")
                     .uri("/auth/me")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .expect("oneshot");
+
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+        let body = res.into_body().collect().await.unwrap().to_bytes();
+        assert_unauthorized(&body);
+    }
+
+    #[tokio::test]
+    async fn auth_logout_all_401_no_authorization_header() {
+        let jwt = JwtConfig::test_config();
+        let res = app(jwt)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/auth/logout-all")
                     .body(Body::empty())
                     .unwrap(),
             )
