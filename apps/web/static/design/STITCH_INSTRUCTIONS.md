@@ -57,6 +57,16 @@ Use a utility like `curl -L` to download the hosted URLs.
 1. **MCP:** `get_screen` with `name` `projects/9702559548791545108/screens/2895e33e817143538c664b94e7538991`, plus `projectId` and `screenId`.
 2. **`curl -L`** into [`static/verify-email/`](../verify-email/) — see [`static/verify-email/README.md`](../verify-email/README.md).
 
+### Phase C2 — Login (Fixavon)
+
+| | |
+|--|--|
+| **Screen** | **Login - Fixavon** |
+| **Screen ID** | `3d5928e9ca844ea9a955ca21a06f0f52` |
+
+1. **MCP:** `get_screen` with `name` `projects/9702559548791545108/screens/3d5928e9ca844ea9a955ca21a06f0f52`, plus `projectId` and `screenId`.
+2. **`curl -L`** into [`static/login/`](../login/) — see [`static/login/README.md`](../login/README.md).
+
 ---
 
 ## Cursor MCP (same project)

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login | Fixavon Tbilisi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#dce9ff",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "background": "#f8f9ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "inverse-surface": "#213145",
+                        "primary-fixed": "#dae1ff",
+                        "on-surface-variant": "#424656",
+                        "on-secondary-container": "#007261",
+                        "outline": "#727687",
+                        "on-primary-container": "#f8f7ff",
+                        "on-primary-fixed-variant": "#003fa4",
+                        "on-error-container": "#93000a",
+                        "secondary": "#006b5c",
+                        "surface-variant": "#d3e4fe",
+                        "primary-container": "#0066ff",
+                        "on-primary-fixed": "#001849",
+                        "on-secondary-fixed": "#00201a",
+                        "primary": "#0050cb",
+                        "surface-bright": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#005228",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#0054d6",
+                        "surface": "#f8f9ff",
+                        "on-tertiary-container": "#e2ffe4",
+                        "tertiary-container": "#008343",
+                        "primary-fixed-dim": "#b3c5ff",
+                        "outline-variant": "#c2c6d8",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container": "#e5eeff",
+                        "tertiary-fixed": "#6bfe9c",
+                        "tertiary-fixed-dim": "#4ae183",
+                        "secondary-container": "#68fadd",
+                        "on-background": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#0b1c30",
+                        "tertiary": "#006733",
+                        "inverse-primary": "#b3c5ff",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#44ddc1",
+                        "on-secondary-fixed-variant": "#005145",
+                        "surface-container-low": "#eff4ff",
+                        "on-tertiary-fixed": "#00210c",
+                        "secondary-fixed": "#68fadd"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .liquid-bg {
+            background: linear-gradient(135deg, #001849 0%, #0050cb 100%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- Note: TopNavBar and Footer are omitted per "Shell Visibility & Relevance (THE FILTER)" rules for Login/Linear journeys. -->
+<main class="flex-grow flex flex-col md:flex-row">
+<!-- Left Side: Brand Narrative (Hidden on mobile for focused login experience) -->
+<div class="hidden md:flex md:w-1/2 liquid-bg relative overflow-hidden flex-col justify-between p-16">
+<!-- Architectural Background Pattern Overlay -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'white\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');">
+</div>
+<div class="relative z-10">
+<div class="text-3xl font-black text-white tracking-tighter mb-24">Fixavon</div>
+<div class="max-w-md">
+<h1 class="text-5xl font-extrabold text-white leading-tight tracking-tighter mb-6">
+                        Connecting Tbilisi with Trusted Professionals.
+                    </h1>
+<p class="text-lg text-primary-fixed leading-relaxed opacity-90">
+                        Access your Fixavon account to manage your services or bookings. Professionalism delivered at the turn of a tap.
+                    </p>
+</div>
+</div>
+<div class="relative z-10">
+<!-- Trust Float Widget -->
+<div class="glass-panel rounded-xl p-6 inline-flex items-center gap-4">
+<div class="flex -space-x-3">
+<img class="w-10 h-10 rounded-full border-2 border-primary-container object-cover" data-alt="professional male plumber portrait with friendly expression in blue uniform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkAACOcaG5VJV8cbx1nqYX4_iXpC3YkeH2l4cjDbUP-IHeyauXWvgK7aOqrqDMM_N8OS1rNHxGS4mHy5Dyv_OtrxBxZcmaZmN5O8xZ-OuQ4MW1Q73YECSWGny1cjpzXXJ7d5BkbznHC7tEVIFuAjE8gOCUfHzIJyDRJANl5rVaeTe_fY1bnl35nDAFipvMzSUw6sFipkZjDbyDMRIkE-YJVae_M4Aum3fBfGHrX4gw3ncq4its-Uz_-zPgt0rZLUAiXEWBG6orHHk"/>
+<img class="w-10 h-10 rounded-full border-2 border-primary-container object-cover" data-alt="professional female service technician smiling confidently" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClLPM4ICkHR4M7SfNz_tCQ5fGDMjYbA2FF0tvivpow9406PcgrL9Yhr06Z_ljhhVGtWvWJoc-riQhV_mapIx_jYkXBWsqpTKz7j8mCUIV3lzNA-yVuVST2rEienb8g9FC7siLG5Lw8GqwWv8WgDl4mkwpLDceN12hfcGDO7_mRgo0NEPFmoVO9ZjOiwR8o6DdxT2JbmF8Mxm9AIyYGr49au64mryUr7XyNq3DHMm9NUWXVStTCoFXrWWf3x_MAMCiWkKcHp3HxZaI"/>
+<img class="w-10 h-10 rounded-full border-2 border-primary-container object-cover" data-alt="portrait of an expert tradesman with years of experience" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFk6LKGNYuco2bVWUIWWkrSndR39AEUu7f7RVa9DxUFiEGjIErIp_kPR1tMmT4cJkMH4-X-ihRlloOQfqI8ZzYkGzlNtHFOTSUrGF6U8avttuRlSXHOkxTuTLEZKGl_hm21MGy3FcqrWMhKbK-AnJkwtkcNHk_aujcH2soeYQ6NQ4mnRF9Ep5Pm99dCe93AZ5VqO0FbSoevzMTnoao2157aB_rPdCMAzUD5zL3YbY9wKpiT3mhQtNjCaWLOxyt7CT9bovdd3sf6D8"/>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed animate-pulse"></span>
+<span class="text-sm font-medium text-white">3 plumbers active</span>
+</div>
+<p class="text-xs text-primary-fixed">Available now in Tbilisi</p>
+</div>
+</div>
+</div>
+<!-- Abstract Fluid Element -->
+<div class="absolute -bottom-24 -left-24 w-96 h-96 bg-primary-container rounded-full blur-[120px] opacity-20"></div>
+</div>
+<!-- Right Side: Login Form -->
+<div class="w-full md:w-1/2 bg-surface flex flex-col justify-center items-center p-6 md:p-12">
+<!-- Mobile Logo -->
+<div class="md:hidden mb-12 text-3xl font-black text-primary tracking-tighter">Fixavon</div>
+<div class="w-full max-w-md">
+<div class="mb-10">
+<h2 class="text-3xl font-bold text-on-surface tracking-tight">Welcome Back</h2>
+<p class="text-on-surface-variant mt-2">Log in to continue to Fixavon</p>
+</div>
+<form class="space-y-6">
+<!-- Email Field -->
+<div class="space-y-2">
+<label class="block text-xs font-semibold text-on-surface-variant tracking-wider uppercase" for="email">Email Address</label>
+<div class="relative group">
+<input class="w-full px-5 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all duration-200 placeholder:text-outline/50" id="email" placeholder="name@company.com" type="email"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">
+                                mail
+                            </span>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="block text-xs font-semibold text-on-surface-variant tracking-wider uppercase" for="password">Password</label>
+<a class="text-xs font-bold text-primary hover:underline transition-all" href="#">Forgot password?</a>
+</div>
+<div class="relative group">
+<input class="w-full px-5 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all duration-200 placeholder:text-outline/50" id="password" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<!-- Login Button -->
+<button class="w-full py-4 bg-primary text-on-primary font-bold rounded-xl shadow-[0px_20px_40px_rgba(0,80,203,0.15)] hover:bg-primary-container transition-all active:scale-[0.98] mt-4" type="submit">
+                        Log In
+                    </button>
+</form>
+<!-- Divider -->
+<div class="my-10 flex items-center gap-4">
+<div class="h-[1px] flex-grow bg-surface-container-high"></div>
+<span class="text-xs font-medium text-outline-variant uppercase tracking-widest">New to Fixavon?</span>
+<div class="h-[1px] flex-grow bg-surface-container-high"></div>
+</div>
+<!-- Registration Actions -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<a class="flex flex-col items-center justify-center p-6 bg-surface-container-low rounded-xl group hover:bg-secondary-container transition-all" href="#">
+<span class="material-symbols-outlined text-secondary mb-2 group-hover:scale-110 transition-transform">person</span>
+<span class="text-sm font-bold text-on-secondary-container">Register as Client</span>
+</a>
+<a class="flex flex-col items-center justify-center p-6 bg-surface-container-low rounded-xl group hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-primary mb-2 group-hover:scale-110 transition-transform">construction</span>
+<span class="text-sm font-bold text-primary">Register as Plumber</span>
+</a>
+</div>
+<!-- Trust Footer -->
+<div class="mt-12 text-center">
+<p class="text-xs text-outline leading-relaxed">
+                        By logging in, you agree to Fixavon's <br/>
+<a class="underline hover:text-primary" href="#">Terms of Service</a> and <a class="underline hover:text-primary" href="#">Privacy Policy</a>.
+                    </p>
+</div>
+</div>
+</div>
+</main>
+<!-- Subtle Background Texture -->
+<div class="fixed inset-0 pointer-events-none opacity-20 overflow-hidden -z-10">
+<div class="absolute top-0 right-0 w-[500px] h-[500px] bg-surface-container-high rounded-full blur-[100px] -mr-64 -mt-64"></div>
+<div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary-container rounded-full blur-[100px] -ml-64 -mb-64 opacity-20"></div>
+</div>
+</body></html>

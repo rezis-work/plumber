@@ -2,7 +2,7 @@
 
 Base path: `/auth` on the Rust API (default **http://127.0.0.1:3001**). With the Vite dev proxy, call **same-origin** paths `/auth/...` from the browser.
 
-**Typed client:** [`client.ts`](./client.ts) (`authLogin`, `authRegisterClient`, `authRegisterPlumber`, `authVerifyEmail`, `authRefresh`, `authLogout`, `authLogoutAll`, `authMe`) and [`types.ts`](./types.ts).
+**Typed client:** [`client.ts`](./client.ts) (`authLogin`, `authRegisterClient`, `authRegisterPlumber`, `authVerifyEmail`, `authRefresh`, `authLogout`, `authLogoutAll`, `authMe`) and [`types.ts`](./types.ts). After **`authLogin`**, the web app calls **`setSessionFromLogin`** in [`session.svelte.ts`](../../lib/auth/session.svelte.ts) (in-memory access token + `GET /auth/me`); the refresh JWT stays in the httpOnly cookie from the API.
 
 | Method | Path | Notes |
 |--------|------|--------|
