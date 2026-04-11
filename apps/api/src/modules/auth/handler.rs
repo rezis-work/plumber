@@ -1,4 +1,5 @@
 use axum::http::header::{self, HeaderValue};
+use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use axum::{extract::State, http::StatusCode, Json};
 use serde_json::json;
@@ -11,6 +12,7 @@ use super::dto::{
     RegisterPlumberResponse,
 };
 use super::login_error::LoginError;
+use super::refresh_error::RefreshError;
 use super::register_error::RegisterError;
 use super::service;
 
@@ -45,6 +47,37 @@ pub async fn login(
         .map_err(|_| LoginError::Internal)?;
 
     let cookie_header = HeaderValue::from_str(&cookie_str).map_err(|_| LoginError::Internal)?;
+
+    let mut res = (StatusCode::OK, Json(response)).into_response();
+    res.headers_mut().append(header::SET_COOKIE, cookie_header);
+    Ok(res)
+}
+
+pub async fn refresh(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Response, RefreshError> {
+    let Some(cookie_raw) = headers
+        .get(header::COOKIE)
+        .and_then(|v| v.to_str().ok())
+    else {
+        return Err(RefreshError::Unauthorized);
+    };
+    let Some(raw_refresh_jwt) = state.cookie_config.refresh_from_cookie_header(cookie_raw) else {
+        return Err(RefreshError::Unauthorized);
+    };
+
+    let service::LoginSuccess {
+        response,
+        refresh_jwt,
+    } = service::refresh(&state, &raw_refresh_jwt).await?;
+
+    let cookie_str = state
+        .cookie_config
+        .refresh_set_cookie_string(&refresh_jwt, state.jwt_config.refresh_ttl_secs())
+        .map_err(|_| RefreshError::Internal)?;
+
+    let cookie_header = HeaderValue::from_str(&cookie_str).map_err(|_| RefreshError::Internal)?;
 
     let mut res = (StatusCode::OK, Json(response)).into_response();
     res.headers_mut().append(header::SET_COOKIE, cookie_header);

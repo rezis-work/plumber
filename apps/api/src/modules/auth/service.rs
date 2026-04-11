@@ -2,10 +2,11 @@ use chrono::{Duration, Utc};
 use uuid::Uuid;
 
 use crate::modules::users::{
-    CreateRefreshSessionParams, CreateUserParams, Role, UserRepository,
+    CreateRefreshSessionParams, CreateUserParams, RefreshTokenRepository, Role, UserRepository,
 };
 use crate::AppState;
 
+use super::auth_context::AuthContext;
 use super::dto::{
     LoginRequest, LoginResponse, RegisterClientRequest, RegisterClientResponse,
     RegisterPlumberRequest, RegisterPlumberResponse, PlumberProfileResponse, UserResponse,
@@ -13,7 +14,10 @@ use super::dto::{
 use super::error::AuthError;
 use super::login_error::LoginError;
 use super::passwords::{hash_password, normalize_email, verify_password};
-use super::refresh_token_hash::hash_refresh_jwt_for_storage;
+use super::refresh_error::RefreshError;
+use super::refresh_token_hash::{
+    hash_refresh_jwt_for_storage, refresh_token_hash_hex_eq_constant_time,
+};
 use super::register_error::RegisterError;
 use super::registration::{normalize_and_validate_phone, validate_full_name, validate_years_of_experience};
 use super::verification::EmailVerificationConfig;
@@ -252,6 +256,84 @@ pub async fn login(state: &AppState, body: LoginRequest) -> Result<LoginSuccess,
     })
 }
 
+/// Rotate refresh session and mint new access + refresh JWTs (Step 9).
+pub async fn refresh(state: &AppState, raw_refresh_jwt: &str) -> Result<LoginSuccess, RefreshError> {
+    let claims = state
+        .jwt_config
+        .verify_refresh_token(raw_refresh_jwt)
+        .map_err(|_| RefreshError::Unauthorized)?;
+
+    let ctx = AuthContext::from_claims(&claims).map_err(|_| RefreshError::Unauthorized)?;
+
+    let row = state
+        .refresh_tokens
+        .find_active_by_jti(&claims.jti)
+        .await
+        .map_err(|_| RefreshError::Internal)?;
+    let Some(row) = row else {
+        return Err(RefreshError::Unauthorized);
+    };
+
+    if row.user_id != ctx.user_id {
+        return Err(RefreshError::Unauthorized);
+    }
+
+    let recomputed = hash_refresh_jwt_for_storage(state.jwt_config.refresh_secret(), raw_refresh_jwt)
+        .map_err(|_| RefreshError::Internal)?;
+    if !refresh_token_hash_hex_eq_constant_time(&row.token_hash, &recomputed) {
+        return Err(RefreshError::Unauthorized);
+    }
+
+    let mut tx = state.pool.begin().await.map_err(|_| RefreshError::Internal)?;
+    let revoked = RefreshTokenRepository::revoke_by_jti_with(&mut *tx, &claims.jti)
+        .await
+        .map_err(|_| RefreshError::Internal)?;
+    if !revoked {
+        let _ = tx.rollback().await;
+        return Err(RefreshError::Unauthorized);
+    }
+
+    let jti_new = Uuid::new_v4().to_string();
+    let refresh_jwt_new = state
+        .jwt_config
+        .create_refresh_token(ctx.user_id, ctx.role, &jti_new)
+        .map_err(|_| RefreshError::Internal)?;
+    let token_hash_new =
+        hash_refresh_jwt_for_storage(state.jwt_config.refresh_secret(), &refresh_jwt_new)
+            .map_err(|_| RefreshError::Internal)?;
+    let expires_at = Utc::now() + Duration::seconds(state.jwt_config.refresh_ttl_secs());
+
+    RefreshTokenRepository::create_refresh_session_with(
+        &mut *tx,
+        CreateRefreshSessionParams {
+            user_id: ctx.user_id,
+            jti: &jti_new,
+            token_hash: &token_hash_new,
+            expires_at,
+        },
+    )
+    .await
+    .map_err(|_| RefreshError::Internal)?;
+
+    tx.commit().await.map_err(|_| RefreshError::Internal)?;
+
+    let access_token = state
+        .jwt_config
+        .create_access_token(ctx.user_id, ctx.role)
+        .map_err(|_| RefreshError::Internal)?;
+
+    let expires_in = u64::try_from(state.jwt_config.access_ttl_secs()).unwrap_or(u64::MAX);
+
+    Ok(LoginSuccess {
+        response: LoginResponse {
+            access_token,
+            token_type: "Bearer",
+            expires_in,
+        },
+        refresh_jwt: refresh_jwt_new,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -420,6 +502,57 @@ mod tests {
             "cookie: {cookie_str}"
         );
         assert!(cookie_str.contains(&state.cookie_config.refresh_cookie_name));
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test refresh_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn refresh_rotates_and_old_refresh_rejected(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::LoginRequest;
+        use crate::modules::auth::refresh_error::RefreshError;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        state
+            .users
+            .create_user(CreateUserParams {
+                email: "refresh-rotate@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: true,
+                is_email_verified: true,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let login_out = login(
+            &state,
+            LoginRequest {
+                email: "refresh-rotate@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("login");
+
+        let old_refresh = login_out.refresh_jwt.clone();
+        let refresh_out = refresh(&state, &old_refresh).await.expect("refresh");
+        assert_ne!(
+            refresh_out.response.access_token,
+            login_out.response.access_token
+        );
+        assert_ne!(refresh_out.refresh_jwt, old_refresh);
+
+        let replay = refresh(&state, &old_refresh).await;
+        assert!(matches!(replay, Err(RefreshError::Unauthorized)));
+
+        let chain = refresh(&state, &refresh_out.refresh_jwt)
+            .await
+            .expect("chain refresh");
+        assert!(!chain.response.access_token.is_empty());
 
         Ok(())
     }

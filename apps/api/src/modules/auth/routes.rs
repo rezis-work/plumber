@@ -15,7 +15,8 @@ pub fn auth_routes(state: AppState) -> Router<AppState> {
     let public = Router::new()
         .route("/register/client", post(handler::register_client))
         .route("/register/plumber", post(handler::register_plumber))
-        .route("/login", post(handler::login));
+        .route("/login", post(handler::login))
+        .route("/refresh", post(handler::refresh));
 
     let protected = Router::new()
         .route("/me", get(handler::me))

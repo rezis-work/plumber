@@ -6,6 +6,7 @@
 
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use subtle::ConstantTimeEq;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -17,6 +18,20 @@ pub fn hash_refresh_jwt_for_storage(refresh_secret: &str, raw_jwt: &str) -> Resu
     let mut mac = HmacSha256::new_from_slice(refresh_secret.as_bytes()).map_err(|_| ())?;
     mac.update(raw_jwt.as_bytes());
     Ok(hex::encode(mac.finalize().into_bytes()))
+}
+
+/// Constant-time equality of two hex-encoded digests (e.g. stored `token_hash` vs recomputed HMAC).
+pub fn refresh_token_hash_hex_eq_constant_time(a_hex: &str, b_hex: &str) -> bool {
+    let Ok(a) = hex::decode(a_hex) else {
+        return false;
+    };
+    let Ok(b) = hex::decode(b_hex) else {
+        return false;
+    };
+    if a.len() != b.len() {
+        return false;
+    }
+    bool::from(a.ct_eq(&b))
 }
 
 #[cfg(test)]
@@ -41,5 +56,18 @@ mod tests {
     #[test]
     fn empty_secret_rejected() {
         assert!(hash_refresh_jwt_for_storage("", "x").is_err());
+    }
+
+    #[test]
+    fn hex_eq_constant_time_matches_hash_outputs() {
+        let h = hash_refresh_jwt_for_storage("s", "jwt").unwrap();
+        assert!(refresh_token_hash_hex_eq_constant_time(&h, &h));
+        let h2 = hash_refresh_jwt_for_storage("s", "jwt2").unwrap();
+        assert!(!refresh_token_hash_hex_eq_constant_time(&h, &h2));
+    }
+
+    #[test]
+    fn hex_eq_rejects_bad_hex() {
+        assert!(!refresh_token_hash_hex_eq_constant_time("gg", "gg"));
     }
 }

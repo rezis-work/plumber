@@ -34,6 +34,19 @@ impl CookieConfig {
         }
     }
 
+    /// Parse the refresh JWT from a raw `Cookie` request header (e.g. `refresh_token=...; other=x`).
+    pub fn refresh_from_cookie_header(&self, cookie_header: &str) -> Option<String> {
+        for parsed in Cookie::split_parse(cookie_header) {
+            let Ok(c) = parsed else {
+                continue;
+            };
+            if c.name() == self.refresh_cookie_name && !c.value().is_empty() {
+                return Some(c.value().to_string());
+            }
+        }
+        None
+    }
+
     /// Full `Set-Cookie` header value (name=value; attributes).
     pub fn refresh_set_cookie_string(
         &self,

@@ -16,6 +16,7 @@ pub mod passwords;
 pub mod refresh_token_hash;
 pub mod register_error;
 pub mod registration;
+pub mod refresh_error;
 pub mod routes;
 pub mod service;
 pub mod service_token;
@@ -23,6 +24,7 @@ pub mod verification;
 
 pub use auth_context::AuthContext;
 pub use auth_forbidden::AuthForbidden;
+pub use refresh_error::RefreshError;
 pub use claims::{AuthJwtClaims, TokenType};
 pub use cookie_config::CookieConfig;
 pub use error::AuthError;

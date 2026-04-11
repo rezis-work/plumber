@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 use super::model::{CreateRefreshSessionParams, RefreshTokenRecord};
@@ -25,6 +25,16 @@ impl RefreshTokenRepository {
         &self,
         params: CreateRefreshSessionParams<'_>,
     ) -> Result<RefreshTokenRecord, sqlx::Error> {
+        Self::create_refresh_session_with(&self.pool, params).await
+    }
+
+    pub async fn create_refresh_session_with<'e, E>(
+        executor: E,
+        params: CreateRefreshSessionParams<'_>,
+    ) -> Result<RefreshTokenRecord, sqlx::Error>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let q = format!(
             r#"
             INSERT INTO refresh_tokens (user_id, jti, token_hash, expires_at)
@@ -37,7 +47,7 @@ impl RefreshTokenRepository {
             .bind(params.jti)
             .bind(params.token_hash)
             .bind(params.expires_at)
-            .fetch_one(&self.pool)
+            .fetch_one(executor)
             .await
     }
 
@@ -61,6 +71,13 @@ impl RefreshTokenRepository {
     }
 
     pub async fn revoke_by_jti(&self, jti: &str) -> Result<bool, sqlx::Error> {
+        Self::revoke_by_jti_with(&self.pool, jti).await
+    }
+
+    pub async fn revoke_by_jti_with<'e, E>(executor: E, jti: &str) -> Result<bool, sqlx::Error>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let r = sqlx::query(
             r#"
             UPDATE refresh_tokens
@@ -69,7 +86,7 @@ impl RefreshTokenRepository {
             "#,
         )
         .bind(jti)
-        .execute(&self.pool)
+        .execute(executor)
         .await?;
         Ok(r.rows_affected() > 0)
     }
