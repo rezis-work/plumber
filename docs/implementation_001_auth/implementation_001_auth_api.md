@@ -456,15 +456,15 @@ Implement composable checks (functions or tower layers) such as:
 
 ## Final API checklist (before frontend/mobile)
 
-- [ ] Neon branch (or project) chosen; `DATABASE_URL` uses **pooled** host for the running API; migrations tested (direct URL if pooler blocks DDL).
-- [ ] Migrations applied for `users`, **`plumber_profiles`**, email verification columns, and `refresh_tokens`.
-- [ ] **`POST /auth/register/client`** and **`POST /auth/register/plumber`** implemented per Step 3; no public admin creation.
-- [ ] Login returns generic error for bad credentials.
-- [ ] Refresh rotates session and cookie.
-- [ ] Logout and logout-all behave as specified.
-- [ ] Access middleware rejects refresh tokens used as Bearer.
-- [ ] RBAC returns 403 for wrong role.
-- [ ] CORS and cookie attributes documented for your web origin (frontend guide).
+- [x] Neon branch (or project) chosen; `DATABASE_URL` uses **pooled** host for the running API; migrations tested (direct URL if pooler blocks DDL). *(Deploy: you set `DATABASE_URL`; API connects and runs migrations on startup.)*
+- [x] Migrations applied for `users`, **`plumber_profiles`**, email verification columns, and `refresh_tokens` (see [`apps/api/migrations/`](../../apps/api/migrations/); `sqlx::migrate!` in `main.rs`).
+- [x] **`POST /auth/register/client`** and **`POST /auth/register/plumber`** implemented per Step 3; no public admin creation.
+- [x] Login returns generic error for bad credentials (`login_wrong_password_matches_unknown_email_body` + same `LoginError::InvalidCredentials` body).
+- [x] Refresh rotates session and cookie (`refresh_rotates_and_old_refresh_rejected`).
+- [x] Logout and logout-all behave as specified (Step 10/11 + tests).
+- [x] Access middleware rejects refresh tokens used as Bearer (`verify_access_token` + `token_type`; `auth_me_401_refresh_jwt_as_bearer`).
+- [x] RBAC returns 403 for wrong role (router tests under `rbac_*_403_*`).
+- [x] CORS and cookie attributes documented for your web origin — [implementation_001_auth_frontend.md](implementation_001_auth_frontend.md) (Step A2 CORS/credentials; cookie path/attributes in API steps above). *(API binary does not add a CORS layer yet; coordinate proxy or add `tower-http` CORS when wiring the web app.)*
 
 ---
 
