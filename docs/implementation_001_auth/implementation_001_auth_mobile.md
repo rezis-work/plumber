@@ -143,6 +143,8 @@ Regardless of option:
 1. If using cookie jar, ensure redirects and Android/iOS cookie persistence are tested against your real API domain.
 2. If using native refresh body/header, never store refresh in plain AsyncStorage without encryption—use SecureStore.
 
+**M3 in this repo:** **`fetch`** JSON client in `apps/mobile/src/api/client.ts` (`apiRequest`, `ApiError`, `credentials: 'omit'`). Native calls use **`X-Auth-Client: native`** (`nativeClientHeaders`). **`apiRequestAuthenticated`** (`authenticatedRequest.ts`) mirrors web: Bearer from **`registerMobileAuthBridge`** (wired in `AuthContext` via `useLayoutEffect`), **401 →** `refreshWithStoredToken` + **`authMe`** + retry with the new access token. Refresh/logout use JSON **`refresh_token`** per **ADR 002** (`refreshNative.ts`, `authApi.ts`). **`applyNativeLoginResponse`** persists optional `refresh_token` after login. Barrel: `apps/mobile/src/api/index.ts`. **Rust API** must implement ADR 002 for native refresh/logout bodies; until then, these calls will fail against cookie-only refresh.
+
 ---
 
 ## Phase MQ — TanStack Query (React Query)

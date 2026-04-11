@@ -4,9 +4,11 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useState
 } from 'react';
+import { registerMobileAuthBridge } from '../api/authBridge';
 import type { MeResponse } from '../api/types';
 import { deleteRefreshToken, getRefreshToken } from './secureRefreshToken';
 
@@ -21,6 +23,8 @@ type AuthContextValue = {
 	hasRefreshTokenStored: boolean;
 	setAccessSession: (accessToken: string, expiresInSecs: number) => void;
 	setUser: (user: MeResponse | null) => void;
+	/** Sync flag after login / refresh (M3 / M4). */
+	setHasRefreshTokenStored: (value: boolean) => void;
 	clearSession: () => Promise<void>;
 };
 
@@ -40,7 +44,11 @@ export function AuthProvider({ children, onSessionCleared }: AuthProviderProps) 
 	const [accessExpiresAtMs, setAccessExpiresAtMs] = useState<number | null>(null);
 	const [user, setUserState] = useState<MeResponse | null>(null);
 	const [isHydrated, setIsHydrated] = useState(false);
-	const [hasRefreshTokenStored, setHasRefreshTokenStored] = useState(false);
+	const [hasRefreshTokenStored, setHasRefreshTokenStoredState] = useState(false);
+
+	const setHasRefreshTokenStored = useCallback((value: boolean) => {
+		setHasRefreshTokenStoredState(value);
+	}, []);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -48,7 +56,7 @@ export function AuthProvider({ children, onSessionCleared }: AuthProviderProps) 
 			try {
 				const t = await getRefreshToken();
 				if (!cancelled) {
-					setHasRefreshTokenStored(!!t);
+					setHasRefreshTokenStoredState(!!t);
 				}
 			} finally {
 				if (!cancelled) {
@@ -78,7 +86,17 @@ export function AuthProvider({ children, onSessionCleared }: AuthProviderProps) 
 		setHasRefreshTokenStored(false);
 		// Phase MQ: also `queryClient.removeQueries({ queryKey: ['auth'] })` via onSessionCleared.
 		onSessionCleared?.();
-	}, [onSessionCleared]);
+	}, [onSessionCleared, setHasRefreshTokenStored]);
+
+	useLayoutEffect(() => {
+		registerMobileAuthBridge({
+			getAccessToken: () => accessToken,
+			setAccessSession,
+			setUser,
+			clearSession,
+			setHasRefreshTokenStored
+		});
+	}, [accessToken, setAccessSession, setUser, clearSession, setHasRefreshTokenStored]);
 
 	const value = useMemo(
 		() =>
@@ -90,6 +108,7 @@ export function AuthProvider({ children, onSessionCleared }: AuthProviderProps) 
 				hasRefreshTokenStored,
 				setAccessSession,
 				setUser,
+				setHasRefreshTokenStored,
 				clearSession
 			}) satisfies AuthContextValue,
 		[
@@ -100,6 +119,7 @@ export function AuthProvider({ children, onSessionCleared }: AuthProviderProps) 
 			hasRefreshTokenStored,
 			setAccessSession,
 			setUser,
+			setHasRefreshTokenStored,
 			clearSession
 		]
 	);
