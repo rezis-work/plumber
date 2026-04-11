@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use api::modules::auth::auth_routes;
-use api::modules::auth::{EmailVerificationConfig, JwtConfig, PasswordConfig};
+use api::modules::auth::{CookieConfig, EmailVerificationConfig, JwtConfig, PasswordConfig};
 use api::AppState;
 use api::modules::users::{RefreshTokenRepository, UserRepository};
 use axum::{routing::get, Router};
@@ -36,6 +36,7 @@ async fn main() {
         password_config: PasswordConfig::from_env(),
         email_verification: EmailVerificationConfig::from_env(),
         jwt_config: JwtConfig::from_env(),
+        cookie_config: CookieConfig::from_env(),
     };
 
     let app = Router::new()

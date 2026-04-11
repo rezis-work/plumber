@@ -5,6 +5,19 @@ use uuid::Uuid;
 use crate::modules::users::Role;
 
 #[derive(Debug, Deserialize)]
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LoginResponse {
+    pub access_token: String,
+    pub token_type: &'static str,
+    pub expires_in: u64,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct RegisterClientRequest {
     pub email: String,
     pub password: String,

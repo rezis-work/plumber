@@ -48,6 +48,19 @@ impl JwtConfig {
         }
     }
 
+    pub fn access_ttl_secs(&self) -> i64 {
+        self.access_ttl_secs
+    }
+
+    pub fn refresh_ttl_secs(&self) -> i64 {
+        self.refresh_ttl_secs
+    }
+
+    /// Same secret as refresh JWT signing; used for [`super::refresh_token_hash::hash_refresh_jwt_for_storage`].
+    pub fn refresh_secret(&self) -> &str {
+        self.refresh_secret.as_str()
+    }
+
     fn validation(&self) -> Validation {
         let mut v = Validation::new(Algorithm::HS256);
         if let Some(ref iss) = self.issuer {

@@ -1,14 +1,19 @@
 use chrono::{Duration, Utc};
+use uuid::Uuid;
 
-use crate::modules::users::{CreateUserParams, Role, UserRepository};
+use crate::modules::users::{
+    CreateRefreshSessionParams, CreateUserParams, Role, UserRepository,
+};
 use crate::AppState;
 
 use super::dto::{
-    RegisterClientRequest, RegisterClientResponse, RegisterPlumberRequest, RegisterPlumberResponse,
-    PlumberProfileResponse, UserResponse,
+    LoginRequest, LoginResponse, RegisterClientRequest, RegisterClientResponse,
+    RegisterPlumberRequest, RegisterPlumberResponse, PlumberProfileResponse, UserResponse,
 };
 use super::error::AuthError;
-use super::passwords::{hash_password, normalize_email};
+use super::login_error::LoginError;
+use super::passwords::{hash_password, normalize_email, verify_password};
+use super::refresh_token_hash::hash_refresh_jwt_for_storage;
 use super::register_error::RegisterError;
 use super::registration::{normalize_and_validate_phone, validate_full_name, validate_years_of_experience};
 use super::verification::EmailVerificationConfig;
@@ -172,11 +177,87 @@ pub async fn register_plumber(
     })
 }
 
+pub struct LoginSuccess {
+    pub response: LoginResponse,
+    pub refresh_jwt: String,
+}
+
+/// Default policy: allow login when `!is_email_verified`; reject `!is_active` with [`LoginError::AccountInactive`].
+pub async fn login(state: &AppState, body: LoginRequest) -> Result<LoginSuccess, LoginError> {
+    let email = match normalize_email(&body.email) {
+        Ok(e) => e,
+        Err(AuthError::InvalidEmail) => {
+            return Err(LoginError::Validation {
+                message: "invalid email".to_string(),
+            });
+        }
+        Err(_) => return Err(LoginError::Internal),
+    };
+
+    let user = state
+        .users
+        .find_by_email(&email)
+        .await
+        .map_err(|_| LoginError::Internal)?;
+    let Some(user) = user else {
+        return Err(LoginError::InvalidCredentials);
+    };
+
+    // Same 401 body for wrong password and verify failures (per Step 6 spec / plan).
+    match verify_password(&body.password, user.password_hash()) {
+        Ok(true) => {}
+        Ok(false) | Err(_) => return Err(LoginError::InvalidCredentials),
+    }
+
+    if !user.is_active {
+        return Err(LoginError::AccountInactive);
+    }
+
+    let jti = Uuid::new_v4().to_string();
+    let refresh_jwt = state
+        .jwt_config
+        .create_refresh_token(user.id, user.role, &jti)
+        .map_err(|_| LoginError::Internal)?;
+
+    let token_hash = hash_refresh_jwt_for_storage(state.jwt_config.refresh_secret(), &refresh_jwt)
+        .map_err(|_| LoginError::Internal)?;
+
+    let expires_at = Utc::now() + Duration::seconds(state.jwt_config.refresh_ttl_secs());
+
+    state
+        .refresh_tokens
+        .create_refresh_session(CreateRefreshSessionParams {
+            user_id: user.id,
+            jti: &jti,
+            token_hash: &token_hash,
+            expires_at,
+        })
+        .await
+        .map_err(|_| LoginError::Internal)?;
+
+    let access_token = state
+        .jwt_config
+        .create_access_token(user.id, user.role)
+        .map_err(|_| LoginError::Internal)?;
+
+    let expires_in = u64::try_from(state.jwt_config.access_ttl_secs()).unwrap_or(u64::MAX);
+
+    Ok(LoginSuccess {
+        response: LoginResponse {
+            access_token,
+            token_type: "Bearer",
+            expires_in,
+        },
+        refresh_jwt,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::modules::auth::dto::{RegisterClientRequest, RegisterPlumberRequest};
     use crate::modules::auth::passwords::PasswordConfig;
+    use crate::modules::auth::cookie_config::CookieConfig;
     use crate::modules::auth::service_token::JwtConfig;
     use crate::modules::auth::verification::EmailVerificationConfig;
     use crate::modules::users::{RefreshTokenRepository, UserRepository};
@@ -193,6 +274,7 @@ mod tests {
                 ttl_hours: 48,
             },
             jwt_config: JwtConfig::from_env(),
+            cookie_config: CookieConfig::from_env(),
         }
     }
 
@@ -280,6 +362,160 @@ mod tests {
         assert_eq!(row.1, "+12345678901");
         assert_eq!(row.2, 5);
 
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test login_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn login_success_persists_refresh_session(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::LoginRequest;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        state
+            .users
+            .create_user(CreateUserParams {
+                email: "login-ok@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: true,
+                is_email_verified: false,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let out = login(
+            &state,
+            LoginRequest {
+                email: "login-ok@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("login");
+
+        assert!(!out.response.access_token.is_empty());
+        assert_eq!(out.response.token_type, "Bearer");
+        assert!(out.response.expires_in > 0);
+
+        let claims = state
+            .jwt_config
+            .verify_refresh_token(&out.refresh_jwt)
+            .expect("refresh jwt");
+        let session = state
+            .refresh_tokens
+            .find_active_by_jti(&claims.jti)
+            .await?
+            .expect("db session");
+        assert_eq!(session.user_id.to_string(), claims.sub);
+
+        let cookie_str = state
+            .cookie_config
+            .refresh_set_cookie_string(&out.refresh_jwt, state.jwt_config.refresh_ttl_secs())
+            .expect("cookie");
+        assert!(
+            cookie_str.to_lowercase().contains("httponly"),
+            "cookie: {cookie_str}"
+        );
+        assert!(cookie_str.contains(&state.cookie_config.refresh_cookie_name));
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test login_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn login_wrong_password_matches_unknown_email_body(pool: PgPool) -> sqlx::Result<()> {
+        use axum::response::IntoResponse;
+        use crate::modules::auth::dto::LoginRequest;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        state
+            .users
+            .create_user(CreateUserParams {
+                email: "login-user@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: true,
+                is_email_verified: true,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let e1 = login(
+            &state,
+            LoginRequest {
+                email: "login-user@example.com".to_string(),
+                password: "wrong-password-xx".to_string(),
+            },
+        )
+        .await
+        .err()
+        .expect("wrong password");
+        let e2 = login(
+            &state,
+            LoginRequest {
+                email: "no-such-user@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .err()
+        .expect("unknown user");
+
+        let r1 = e1.into_response();
+        let r2 = e2.into_response();
+        assert_eq!(r1.status(), r2.status());
+        let b1 = axum::body::to_bytes(r1.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let b2 = axum::body::to_bytes(r2.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(b1, b2);
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test login_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn login_inactive_user_forbidden(pool: PgPool) -> sqlx::Result<()> {
+        use axum::http::StatusCode;
+        use axum::response::IntoResponse;
+        use crate::modules::auth::dto::LoginRequest;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        state
+            .users
+            .create_user(CreateUserParams {
+                email: "inactive@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: false,
+                is_email_verified: true,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let err = login(
+            &state,
+            LoginRequest {
+                email: "inactive@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .err()
+        .expect("inactive");
+
+        assert_eq!(err.into_response().status(), StatusCode::FORBIDDEN);
         Ok(())
     }
 }
