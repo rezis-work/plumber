@@ -14,7 +14,7 @@ Machine-readable tokens live in [`src/design/tokens.json`](../src/design/tokens.
 
 ## Mobile marketing and auth screens (Phase MS.3)
 
-See [implementation_001_auth_mobile.md — Step MS.3](../../../docs/implementation_001_auth/implementation_001_auth_mobile.md). Place downloads under `assets/stitch/<folder>/` (folders are scaffolded with `.gitkeep`).
+See [implementation_001_auth_mobile.md — Step MS.3](../../../docs/implementation_001_auth/implementation_001_auth_mobile.md). Place downloads under `assets/stitch/<folder>/`. See [`assets/stitch/README.md`](../assets/stitch/README.md): committed PNGs are **placeholders** until Stitch exports replace them.
 
 | Screen | Screen ID | Folder |
 |--------|-----------|--------|
@@ -24,4 +24,14 @@ See [implementation_001_auth_mobile.md — Step MS.3](../../../docs/implementati
 | Verify Email - Mobile | `5c38516278094c3ca521320fbd3edf1a` | `assets/stitch/verify-email-mobile/` |
 | Login - Mobile | `669b5b6b8ed24c179ed828e95c4fc88a` | `assets/stitch/login-mobile/` |
 
-**Typography:** Web uses **Inter** (`app.html`). For pixel parity on native, add **`expo-font`** + **@expo-google-fonts/inter** in a follow-up; until then the app uses the system sans-serif.
+### MS.3 status (Expo Router)
+
+| Stitch screen | Route | Raster files used in UI |
+|---------------|-------|-------------------------|
+| Landing (mobile) | `/` — `app/(guest)/index.tsx` | `landing-mobile/hero.png` |
+| Client registration | `/register` — `app/(guest)/register/index.tsx` | `register-client-mobile/illustration.png` |
+| Plumber registration | `/register/plumber` — `app/(guest)/register/plumber.tsx` | `register-plumber-mobile/illustration.png` |
+| Verify email | `/verify-email` — `app/(guest)/verify-email.tsx` | `verify-email-mobile/illustration.png` |
+| Login | `/login` — `app/(guest)/login.tsx` | `login-mobile/illustration.png` |
+
+**Typography:** Web uses **Inter** (`app.html`). MS.3 screens use the **system sans-serif** for now. For pixel parity, add **`expo-font`** + **`@expo-google-fonts/inter`** in a follow-up.
