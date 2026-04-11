@@ -276,10 +276,13 @@
 	@media (min-width: 768px) {
 		.hero {
 			display: flex;
-			width: 50%;
-			max-width: 40rem;
-			min-height: 100vh;
-			padding: var(--space-16);
+			width: 42%;
+			max-width: 32rem;
+			height: 100vh;
+			padding: var(--space-8);
+			position: sticky;
+			top: 0;
+			align-self: flex-start;
 		}
 	}
 
@@ -353,15 +356,21 @@
 	.hero__trust {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-6);
-		padding: var(--space-6);
+		gap: var(--space-4);
+		padding: var(--space-4);
 		margin-top: auto;
 		max-width: 100%;
 	}
 
 	.hero__avatars {
-		display: flex;
+		display: none;
 		margin-left: 0.35rem;
+	}
+
+	@media (min-width: 1024px) {
+		.hero__avatars {
+			display: flex;
+		}
 	}
 
 	.hero__avatar {
@@ -430,21 +439,27 @@
 		background: var(--color-surface);
 	}
 
-	@media (min-width: 768px) {
+	@media (min-width: 769px) and (max-width: 1023px) {
 		.panel {
-			padding: var(--space-12) var(--space-10);
+			padding: var(--space-12) var(--space-8);
 		}
 	}
 
 	@media (min-width: 1024px) {
 		.panel {
-			padding: var(--space-16) var(--space-12);
+			padding: var(--space-12);
 		}
 	}
 
 	.panel__inner {
 		width: 100%;
 		max-width: 28rem;
+	}
+
+	@media (min-width: 1024px) {
+		.panel__inner {
+			max-width: 38rem;
+		}
 	}
 
 	.panel__logo-mobile {
@@ -455,7 +470,7 @@
 		text-decoration: none;
 		letter-spacing: -0.02em;
 		text-align: center;
-		margin-bottom: var(--space-12);
+		margin-bottom: var(--space-8);
 	}
 
 	@media (min-width: 768px) {
@@ -490,13 +505,13 @@
 	}
 
 	.panel__header {
-		margin-bottom: var(--space-10);
-		padding-bottom: var(--space-2);
+		margin-bottom: var(--space-2);
+		padding-bottom: 0;
 	}
 
 	.panel__title {
-		margin: 0 0 var(--space-2);
-		font-size: 1.875rem;
+		margin: 0 0;
+		font-size: clamp(1.375rem, 3vw, 1.875rem);
 		font-weight: 800;
 		color: var(--color-text);
 		letter-spacing: -0.02em;
@@ -511,28 +526,34 @@
 	.card {
 		background: var(--color-surface-elevated);
 		border-radius: var(--radius-xl);
-		padding: var(--space-10) var(--space-8);
-		box-shadow: var(--shadow-ambient);
-		border: 1px solid color-mix(in srgb, var(--color-outline-variant) 35%, transparent);
+		padding: var(--space-6) var(--space-8);
+		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+		border: 1px solid var(--color-outline-variant);
 	}
 
-	@media (min-width: 768px) {
+	@media (min-width: 769px) and (max-width: 1023px) {
 		.card {
-			padding: var(--space-12) var(--space-10);
+			padding: var(--space-6) var(--space-8);
 		}
 	}
 
 	@media (min-width: 1024px) {
 		.card {
-			padding: var(--space-12) var(--space-12);
+			padding: var(--space-8) var(--space-8);
 		}
 	}
 
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-8);
-		padding: var(--space-2) 0;
+		gap: var(--space-4);
+		padding: 0;
+	}
+
+	@media (min-width: 768px) {
+		.form {
+			gap: var(--space-6);
+		}
 	}
 
 	.form__error {

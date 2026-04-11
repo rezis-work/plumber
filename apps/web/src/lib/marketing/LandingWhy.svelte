@@ -147,16 +147,17 @@
 	.why__card {
 		padding: var(--space-8);
 		border-radius: var(--radius-xl);
-		background: var(--color-surface);
-		border: 1px solid transparent;
+		background: var(--color-surface-elevated);
+		border: 1px solid var(--color-outline-variant);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 		transition:
 			border-color 0.2s ease,
 			box-shadow 0.2s ease;
 	}
 
 	.why__card:hover {
-		border-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
-		box-shadow: 0 12px 40px color-mix(in srgb, var(--color-primary) 5%, transparent);
+		border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+		box-shadow: 0 12px 40px color-mix(in srgb, var(--color-primary) 8%, transparent);
 	}
 
 	.why__card-icon {

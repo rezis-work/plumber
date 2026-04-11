@@ -568,14 +568,14 @@
 	.card {
 		background: var(--color-surface-elevated);
 		border-radius: var(--radius-xl);
-		padding: var(--space-10) var(--space-8);
+		padding: var(--space-6);
 		box-shadow: var(--shadow-ambient);
 		border: 1px solid color-mix(in srgb, var(--color-outline-variant) 35%, transparent);
 	}
 
 	@media (min-width: 768px) {
 		.card {
-			padding: var(--space-12) var(--space-10);
+			padding: var(--space-10) var(--space-10);
 		}
 	}
 
@@ -588,7 +588,7 @@
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-8);
+		gap: var(--space-6);
 	}
 
 	.form__error {
