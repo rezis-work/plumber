@@ -32,7 +32,7 @@
 						</div>
 					</li>
 				</ul>
-				<a class="lp-btn lp-btn--primary" href="/register/plumber">Join as Plumber</a>
+				<a class="lp-btn lp-btn--primary" href="/register/plumber" style="margin-top: var(--space-4);">Join as Plumber</a>
 			</div>
 			<div class="plumber__media">
 				<div class="plumber__img-wrap">
