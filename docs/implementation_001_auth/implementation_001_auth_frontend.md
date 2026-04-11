@@ -252,16 +252,22 @@ Typical routes: `/login`, `/sign-in`, or similar.
 1. For authenticated API calls from the browser, attach `Authorization: Bearer <access_token>`.
 2. Implement a **401 handler** path: on 401 from a protected resource, try `POST /auth/refresh` once, retry original request; if refresh fails, clear session and redirect to login.
 
+**Implemented (SvelteKit web):** [`apps/web/src/lib/api/authenticatedRequest.ts`](../../apps/web/src/lib/api/authenticatedRequest.ts) exports **`apiRequestAuthenticated`** (browser-only): merges Bearer from [`session.svelte.ts`](../../apps/web/src/lib/auth/session.svelte.ts) unless `accessToken` is passed in options; on first **401**, **`authRefresh`** + **`authMe`** via [`client.ts`](../../apps/web/src/lib/api/client.ts), then retries once with the new session token; on refresh/`/me` failure, **`clearSession`** and **`goto`** to **`/login`** (with SvelteKit **`base`**). Low-level **`apiRequest`** remains unchanged for auth routes. See [`routes.md`](../../apps/web/src/lib/api/routes.md).
+
 ### Step C5 — Logout
 
 1. Call `POST /auth/logout` with credentials so server revokes refresh session and clears cookie.
 2. Clear client access token and user store client-side.
 3. Redirect to public page.
 
+**Implemented (SvelteKit web):** [`apps/web/src/lib/auth/logout.ts`](../../apps/web/src/lib/auth/logout.ts) **`logoutFromApp`**: `authLogout()` from [`client.ts`](../../apps/web/src/lib/api/client.ts) (default `credentials: 'include'`), then **`clearSession`**, then **`goto`** to home with SvelteKit **`base`**. API errors still clear client state. Entry point: [`LandingNav.svelte`](../../apps/web/src/lib/marketing/LandingNav.svelte) when signed in.
+
 ### Step C6 — Logout everywhere
 
 1. From an account/security UI, call `POST /auth/logout-all` with Bearer access token + credentials if needed for cookie clearing.
 2. Clear local session state; redirect to login.
+
+**Implemented (SvelteKit web):** same [`logout.ts`](../../apps/web/src/lib/auth/logout.ts) **`logoutEverywhere`**: `authLogoutAll(session.accessToken)` (skipped if no access token), **`clearSession`**, **`goto`** login with **`base`**. Shown in [`LandingNav.svelte`](../../apps/web/src/lib/marketing/LandingNav.svelte) when `session.accessToken` is set. See [`routes.md`](../../apps/web/src/lib/api/routes.md).
 
 ---
 
@@ -329,9 +335,12 @@ Document limitations if SSR cannot see httpOnly refresh JWT.
 
 - [ ] Configured API base URL and credentials mode for cookie endpoints.
 - [x] **C3:** Bootstrap session on full load (silent refresh + `/auth/me` when no in-memory access token; see Step C3 above).
+- [x] **C4:** Bearer on protected calls + 401 → one refresh + retry; clear session + redirect to login if refresh fails (see Step C4 above).
+- [x] **C5:** Logout — `POST /auth/logout`, clear session, redirect public (see Step C5 above).
+- [x] **C6:** Logout everywhere — `POST /auth/logout-all`, clear session, redirect login (see Step C6 above).
 - [ ] **Separate** client signup vs **become plumber** flows (routes + forms + API calls).
 - [ ] Client post-signup **email verification** UX; dev-only handling of verification token until email is sent server-side.
-- [ ] Login/logout flows wired with correct error messaging policy.
-- [ ] Access token lifecycle with refresh-on-401 (or equivalent).
+- [x] Login/logout flows wired with correct error messaging policy (login/register per Phase C; logout C5/C6 in nav).
+- [x] Access token lifecycle with refresh-on-401 (or equivalent); see Step C4.
 - [ ] Protected routes and role-based redirects.
 - [ ] No secrets in client bundle; no password/token logging in production.
