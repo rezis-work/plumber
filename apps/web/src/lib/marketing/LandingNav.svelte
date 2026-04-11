@@ -5,9 +5,64 @@
 
 	let menuOpen = $state(false);
 	let logoutBusy = $state(false);
+	let activeSection = $state('benefits');
+	let isNavigating = $state(false);
 
 	const isAuthenticated = $derived(session.user !== null && session.accessToken !== null);
 	const canLogoutEverywhere = $derived(session.accessToken !== null);
+
+	const sections = ['benefits', 'services', 'for-plumbers',  'faq'];
+
+	function setActive(id: string) {
+		isNavigating = true;
+		activeSection = id;
+	}
+
+	$effect(() => {
+		const visible = new Set<string>();
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					const id = entry.target.id;
+					if (entry.isIntersecting) {
+						visible.add(id);
+					} else {
+						visible.delete(id);
+					}
+				}
+				if (isNavigating) return;
+				for (const id of sections) {
+					if (visible.has(id)) {
+						activeSection = id;
+						break;
+					}
+				}
+			},
+			{ rootMargin: '-80px 0px -70% 0px', threshold: 0 }
+		);
+
+		for (const id of sections) {
+			const el = document.getElementById(id);
+			if (el) observer.observe(el);
+		}
+
+		function onScrollEnd() {
+			isNavigating = false;
+			for (const id of sections) {
+				if (visible.has(id)) {
+					activeSection = id;
+					break;
+				}
+			}
+		}
+
+		window.addEventListener('scrollend', onScrollEnd, { passive: true });
+		return () => {
+			observer.disconnect();
+			window.removeEventListener('scrollend', onScrollEnd);
+		};
+	});
 
 	function closeMenu() {
 		menuOpen = false;
@@ -40,10 +95,11 @@
 	<nav class="nav__inner lp-wrap">
 		<a class="nav__logo" href={`${base}/`} onclick={closeMenu}>Fixavon</a>
 		<div class="nav__links">
-			<a class="nav__link nav__link--active" href="#services">Services</a>
-			<a class="nav__link" href="#for-plumbers">For Plumbers</a>
-			<a class="nav__link" href="#benefits">Benefits</a>
-			<a class="nav__link" href="#faq">FAQ</a>
+			<a class="nav__link" class:nav__link--active={activeSection === 'benefits'} href="#benefits" onclick={() => setActive('benefits')}>Benefits</a>
+			<a class="nav__link" class:nav__link--active={activeSection === 'services'} href="#services" onclick={() => setActive('services')}>Services</a>
+			<a class="nav__link" class:nav__link--active={activeSection === 'for-plumbers'} href="#for-plumbers" onclick={() => setActive('for-plumbers')}>For Plumbers</a>
+			
+			<a class="nav__link" class:nav__link--active={activeSection === 'faq'} href="#faq" onclick={() => setActive('faq')}>FAQ</a>
 		</div>
 		<div class="nav__actions">
 			{#if isAuthenticated}

@@ -386,6 +386,7 @@
 		height: 0.75rem;
 		border-radius: 50%;
 		background: var(--color-tertiary);
+		margin-left: var(--space-2);
 	}
 
 	.hero__pill-text {
@@ -580,6 +581,7 @@
 
 	.panel__login {
 		margin: 0;
+		margin-top: var(--space-6);
 		color: var(--color-text-muted);
 		font-weight: var(--font-weight-medium);
 	}

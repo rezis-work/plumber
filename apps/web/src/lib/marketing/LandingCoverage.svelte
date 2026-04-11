@@ -4,7 +4,7 @@
 			<div class="cov__map-wrap">
 				<img
 					class="cov__map"
-					src="/marketing/tbilisi-coverage.png"
+					src="/marketing/tbilisi-coverage.jpg"
 					alt="Stylized map of Tbilisi districts"
 					width="800"
 					height="400"

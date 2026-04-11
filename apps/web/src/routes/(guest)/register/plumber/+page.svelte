@@ -390,7 +390,11 @@
 			width: 42%;
 			max-width: 28rem;
 			min-height: 100vh;
+			height: 100vh;
 			padding: var(--space-12) var(--space-8);
+			position: sticky;
+			top: 0;
+			align-self: flex-start;
 		}
 	}
 
@@ -533,7 +537,7 @@
 
 	@media (min-width: 1024px) {
 		.panel {
-			padding: var(--space-16) var(--space-24);
+			padding: var(--space-8) var(--space-12);
 		}
 	}
 
@@ -697,8 +701,8 @@
 		font-size: var(--text-sm);
 		color: var(--color-text-muted);
 		line-height: 1.55;
-		padding: var(--space-4) var(--space-2) var(--space-2);
-		margin-top: var(--space-2);
+		padding: 0;
+		margin-top: 0;
 		border-radius: var(--radius-md);
 	}
 
@@ -708,6 +712,11 @@
 		margin-top: 0.1rem;
 		accent-color: var(--color-primary);
 		flex-shrink: 0;
+	}
+
+	.terms__text {
+		min-width: 0;
+		overflow-wrap: break-word;
 	}
 
 	.terms a {
@@ -721,8 +730,8 @@
 	}
 
 	.form__actions {
-		padding-top: var(--space-6);
-		margin-top: var(--space-2);
+		padding-top: 0;
+		margin-top: 0;
 	}
 
 	.btn-submit {
@@ -764,6 +773,7 @@
 
 	.panel__login {
 		margin: 0;
+		margin-top: var(--space-6);
 		color: var(--color-text-muted);
 		font-weight: var(--font-weight-medium);
 	}
@@ -806,7 +816,7 @@
 	}
 
 	.legal {
-		margin-top: var(--space-16);
+		margin-top: var(--space-8);
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;

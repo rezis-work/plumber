@@ -391,9 +391,10 @@
 		width: 0.5rem;
 		height: 0.5rem;
 		border-radius: 50%;
-		background: var(--color-tertiary-fixed);
+		background: #22c55e;
 		flex-shrink: 0;
 		animation: pulse-dot 2s ease-in-out infinite;
+		margin-left: var(--space-2);
 	}
 
 	@keyframes pulse-dot {
@@ -414,6 +415,7 @@
 
 	.hero__live-sub {
 		margin: var(--space-1) 0 0;
+		padding-left: 1.5rem;
 		font-size: 0.7rem;
 		color: var(--color-primary-fixed);
 		opacity: 0.85;
@@ -658,8 +660,8 @@
 	}
 
 	.form__actions {
-		padding-top: var(--space-6);
-		margin-top: var(--space-2);
+		padding-top: 0;
+		margin-top: 0;
 	}
 
 	.btn-submit {
@@ -694,7 +696,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-4);
-		margin: var(--space-10) 0;
+		margin: var(--space-6) 0;
 	}
 
 	.divider__line {
