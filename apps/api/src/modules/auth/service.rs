@@ -14,6 +14,7 @@ use super::dto::{
 use super::error::AuthError;
 use super::login_error::LoginError;
 use super::passwords::{hash_password, normalize_email, verify_password};
+use super::logout_error::LogoutError;
 use super::refresh_error::RefreshError;
 use super::refresh_token_hash::{
     hash_refresh_jwt_for_storage, refresh_token_hash_hex_eq_constant_time,
@@ -334,6 +335,20 @@ pub async fn refresh(state: &AppState, raw_refresh_jwt: &str) -> Result<LoginSuc
     })
 }
 
+/// Revoke refresh session when cookie JWT verifies (Step 10). Always ok for missing/invalid cookie (idempotent).
+pub async fn logout(state: &AppState, raw_refresh_jwt: Option<&str>) -> Result<(), LogoutError> {
+    if let Some(raw) = raw_refresh_jwt {
+        if let Ok(claims) = state.jwt_config.verify_refresh_token(raw) {
+            state
+                .refresh_tokens
+                .revoke_by_jti(&claims.jti)
+                .await
+                .map_err(|_| LogoutError::Internal)?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -553,6 +568,54 @@ mod tests {
             .await
             .expect("chain refresh");
         assert!(!chain.response.access_token.is_empty());
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test logout_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn logout_revokes_refresh_second_logout_idempotent(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::LoginRequest;
+        use crate::modules::auth::refresh_error::RefreshError;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        state
+            .users
+            .create_user(CreateUserParams {
+                email: "logout-user@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                is_active: true,
+                is_email_verified: true,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let login_out = login(
+            &state,
+            LoginRequest {
+                email: "logout-user@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("login");
+
+        let refresh_jwt = login_out.refresh_jwt.clone();
+        logout(&state, Some(refresh_jwt.as_str()))
+            .await
+            .expect("logout with valid refresh");
+
+        let after = refresh(&state, &refresh_jwt).await;
+        assert!(matches!(after, Err(RefreshError::Unauthorized)));
+
+        logout(&state, None).await.expect("logout without cookie jwt");
+        logout(&state, Some("not-a-jwt"))
+            .await
+            .expect("logout with invalid jwt");
 
         Ok(())
     }

@@ -12,6 +12,7 @@ use super::dto::{
     RegisterPlumberResponse,
 };
 use super::login_error::LoginError;
+use super::logout_error::LogoutError;
 use super::refresh_error::RefreshError;
 use super::register_error::RegisterError;
 use super::service;
@@ -80,6 +81,28 @@ pub async fn refresh(
     let cookie_header = HeaderValue::from_str(&cookie_str).map_err(|_| RefreshError::Internal)?;
 
     let mut res = (StatusCode::OK, Json(response)).into_response();
+    res.headers_mut().append(header::SET_COOKIE, cookie_header);
+    Ok(res)
+}
+
+pub async fn logout(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Response, LogoutError> {
+    let raw_refresh_jwt = headers
+        .get(header::COOKIE)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|raw| state.cookie_config.refresh_from_cookie_header(raw));
+
+    service::logout(&state, raw_refresh_jwt.as_deref()).await?;
+
+    let cookie_str = state
+        .cookie_config
+        .refresh_clear_cookie_string()
+        .map_err(|_| LogoutError::Internal)?;
+    let cookie_header = HeaderValue::from_str(&cookie_str).map_err(|_| LogoutError::Internal)?;
+
+    let mut res = StatusCode::NO_CONTENT.into_response();
     res.headers_mut().append(header::SET_COOKIE, cookie_header);
     Ok(res)
 }

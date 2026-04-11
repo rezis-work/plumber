@@ -10,6 +10,7 @@ pub mod dto;
 pub mod error;
 pub mod handler;
 pub mod login_error;
+pub mod logout_error;
 pub mod middleware_access;
 pub mod middleware_rbac;
 pub mod passwords;
@@ -24,6 +25,7 @@ pub mod verification;
 
 pub use auth_context::AuthContext;
 pub use auth_forbidden::AuthForbidden;
+pub use logout_error::LogoutError;
 pub use refresh_error::RefreshError;
 pub use claims::{AuthJwtClaims, TokenType};
 pub use cookie_config::CookieConfig;

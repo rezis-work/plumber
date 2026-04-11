@@ -63,6 +63,18 @@ impl CookieConfig {
             .build();
         Ok(cookie.to_string())
     }
+
+    /// `Set-Cookie` that clears the refresh cookie (Step 10 logout): same Path / SameSite / Secure / HttpOnly as login.
+    pub fn refresh_clear_cookie_string(&self) -> Result<String, ()> {
+        let cookie = Cookie::build((self.refresh_cookie_name.clone(), ""))
+            .path(self.refresh_cookie_path.clone())
+            .http_only(true)
+            .same_site(self.same_site)
+            .secure(self.secure)
+            .max_age(CookieDuration::seconds(0))
+            .build();
+        Ok(cookie.to_string())
+    }
 }
 
 fn parse_bool_env(key: &str) -> bool {
@@ -77,5 +89,43 @@ fn parse_same_site(raw: &str) -> SameSite {
         "strict" => SameSite::Strict,
         "none" => SameSite::None,
         _ => SameSite::Lax,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_config() -> CookieConfig {
+        CookieConfig {
+            refresh_cookie_name: "refresh_token".to_string(),
+            refresh_cookie_path: "/auth".to_string(),
+            same_site: SameSite::Lax,
+            secure: true,
+        }
+    }
+
+    #[test]
+    fn refresh_clear_cookie_string_max_age_zero_and_matches_set_attrs() {
+        let c = test_config();
+        let clear = c.refresh_clear_cookie_string().expect("clear");
+        let set = c
+            .refresh_set_cookie_string("jwt-here", 3600)
+            .expect("set");
+        assert!(
+            clear.to_lowercase().contains("max-age=0"),
+            "clear: {clear}"
+        );
+        assert!(clear.to_lowercase().contains("httponly"));
+        assert!(clear.contains("refresh_token="));
+        assert!(clear.contains("Path=/auth"));
+        assert!(clear.to_lowercase().contains("secure"));
+        assert!(clear.to_lowercase().contains("samesite=lax"));
+        assert_eq!(
+            clear.matches("Path=").count(),
+            1,
+            "single Path= like set-cookie: {clear}"
+        );
+        assert_eq!(set.matches("Path=").count(), 1);
     }
 }
