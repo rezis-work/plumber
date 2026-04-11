@@ -1,8 +1,18 @@
-# sv
+# Fixavon web (SvelteKit)
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+## API and auth (Phase A)
 
-## Creating a project
+1. Copy **`.env.example`** to **`.env`** (optional; only needed if you set vars).
+2. Start the API on port **3001** from `apps/api` (`cargo run`).
+3. **`pnpm dev`** — Vite proxies **`/auth` → `http://127.0.0.1:3001/auth`**. Use **relative** URLs like `/auth/login` with `credentials: 'include'` so the refresh cookie path matches.
+
+**Cross-origin mode:** set `PUBLIC_API_URL=http://localhost:3001` (or your API origin) in `.env`. The browser calls the API directly; the API must allow your web origin via `CORS_ALLOWED_ORIGINS` and use `SameSite=None; Secure` cookies over HTTPS. See `docs/implementation_001_auth/adr_001_cors_and_cookies.md`.
+
+Auth route list: [`src/lib/api/routes.md`](src/lib/api/routes.md).
+
+---
+
+## Creating a project (template boilerplate)
 
 If you're seeing this, you've probably already done this step. Congrats!
 

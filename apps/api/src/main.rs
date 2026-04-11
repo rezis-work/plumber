@@ -4,11 +4,35 @@ use api::modules::auth::auth_routes;
 use api::modules::auth::{CookieConfig, EmailVerificationConfig, JwtConfig, PasswordConfig};
 use api::AppState;
 use api::modules::users::{RefreshTokenRepository, UserRepository};
+use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
+use axum::http::{HeaderValue, Method};
 use axum::{routing::get, Router};
 use sqlx::postgres::PgPoolOptions;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
 async fn health() -> &'static str {
     "ok"
+}
+
+/// When `CORS_ALLOWED_ORIGINS` is set (comma-separated), enable credentialed CORS for browser clients.
+fn cors_layer_from_env() -> Option<CorsLayer> {
+    let raw = std::env::var("CORS_ALLOWED_ORIGINS").ok()?;
+    let origins: Vec<HeaderValue> = raw
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .filter_map(|s| HeaderValue::from_str(s).ok())
+        .collect();
+    if origins.is_empty() {
+        return None;
+    }
+    Some(
+        CorsLayer::new()
+            .allow_origin(AllowOrigin::list(origins))
+            .allow_credentials(true)
+            .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+            .allow_headers([AUTHORIZATION, CONTENT_TYPE]),
+    )
 }
 
 #[tokio::main]
@@ -39,10 +63,14 @@ async fn main() {
         cookie_config: CookieConfig::from_env(),
     };
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/health", get(health))
         .nest("/auth", auth_routes(state.clone()))
         .with_state(state);
+
+    if let Some(cors) = cors_layer_from_env() {
+        app = app.layer(cors);
+    }
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
         .await
