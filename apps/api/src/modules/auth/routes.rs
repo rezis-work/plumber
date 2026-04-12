@@ -161,7 +161,7 @@ mod tests {
                 email: "me-client@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: true,
+                user_status: crate::modules::users::UserStatus::Active,
                 is_email_verified: true,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -184,6 +184,7 @@ mod tests {
         assert_eq!(v["id"], json!(user.id.to_string()));
         assert_eq!(v["email"], json!("me-client@example.com"));
         assert_eq!(v["role"], json!("client"));
+        assert_eq!(v["status"], json!("active"));
         assert_eq!(v["is_active"], json!(true));
         assert_eq!(v["is_email_verified"], json!(true));
         assert_eq!(v["profile"], serde_json::Value::Null);

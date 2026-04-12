@@ -12,6 +12,15 @@ pub enum Role {
     Admin,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Type, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "user_status", rename_all = "lowercase")]
+pub enum UserStatus {
+    Active,
+    Blocked,
+    Pending,
+}
+
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct User {
     pub id: Uuid,
@@ -19,7 +28,10 @@ pub struct User {
     #[allow(dead_code)]
     password_hash: String,
     pub role: Role,
-    pub is_active: bool,
+    pub user_status: UserStatus,
+    pub last_login_at: Option<DateTime<Utc>>,
+    pub blocked_at: Option<DateTime<Utc>>,
+    pub deleted_at: Option<DateTime<Utc>>,
     pub is_email_verified: bool,
     pub email_verification_token_hash: Option<String>,
     pub email_verification_expires_at: Option<DateTime<Utc>>,
@@ -32,10 +44,16 @@ impl User {
     pub(crate) fn password_hash(&self) -> &str {
         &self.password_hash
     }
+
+    /// Login and refresh are allowed only for active, non–soft-deleted accounts.
+    pub fn login_allowed(&self) -> bool {
+        self.user_status == UserStatus::Active && self.deleted_at.is_none()
+    }
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct PlumberProfile {
+    pub id: Uuid,
     pub user_id: Uuid,
     pub full_name: String,
     pub phone: String,

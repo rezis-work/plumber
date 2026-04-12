@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::modules::users::{
     CreateRefreshSessionParams, CreateUserParams, RefreshTokenRepository, Role, UserRepository,
+    UserStatus,
 };
 use crate::AppState;
 
@@ -137,7 +138,7 @@ pub async fn register_client(
             email: &email,
             password_hash: &password_hash,
             role: Role::Client,
-            is_active: true,
+            user_status: UserStatus::Active,
             is_email_verified: false,
             email_verification_token_hash: Some(&token_hash),
             email_verification_expires_at: Some(expires_at),
@@ -198,7 +199,7 @@ pub async fn register_plumber(
             email: &email,
             password_hash: &password_hash,
             role: Role::Plumber,
-            is_active: true,
+            user_status: UserStatus::Active,
             is_email_verified: true,
             email_verification_token_hash: None,
             email_verification_expires_at: None,
@@ -251,7 +252,7 @@ pub struct LoginSuccess {
     pub refresh_jwt: String,
 }
 
-/// Default policy: allow login when `!is_email_verified`; reject `!is_active` with [`LoginError::AccountInactive`].
+/// Default policy: allow login when `!is_email_verified`; reject non-active or soft-deleted with [`LoginError::AccountInactive`].
 pub async fn login(state: &AppState, body: LoginRequest) -> Result<LoginSuccess, LoginError> {
     let email = match normalize_email(&body.email) {
         Ok(e) => e,
@@ -278,7 +279,7 @@ pub async fn login(state: &AppState, body: LoginRequest) -> Result<LoginSuccess,
         Ok(false) | Err(_) => return Err(LoginError::InvalidCredentials),
     }
 
-    if !user.is_active {
+    if !user.login_allowed() {
         return Err(LoginError::AccountInactive);
     }
 
@@ -444,11 +445,13 @@ pub async fn me_profile(state: &AppState, user_id: Uuid) -> Result<MeResponse, M
         None
     };
 
+    let is_active = user.login_allowed();
     Ok(MeResponse {
         id: user.id,
         email: user.email,
         role: user.role,
-        is_active: user.is_active,
+        status: user.user_status,
+        is_active,
         is_email_verified: user.is_email_verified,
         created_at: user.created_at,
         updated_at: user.updated_at,
@@ -464,7 +467,7 @@ mod tests {
     use crate::modules::auth::cookie_config::CookieConfig;
     use crate::modules::auth::service_token::JwtConfig;
     use crate::modules::auth::verification::EmailVerificationConfig;
-    use crate::modules::users::{RefreshTokenRepository, UserRepository};
+    use crate::modules::users::{RefreshTokenRepository, UserRepository, UserStatus};
     use sqlx::PgPool;
 
     fn test_app_state(pool: PgPool) -> AppState {
@@ -583,7 +586,7 @@ mod tests {
                 email: "login-ok@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: false,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -643,7 +646,7 @@ mod tests {
                 email: "refresh-rotate@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: true,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -694,7 +697,7 @@ mod tests {
                 email: "logout-user@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: true,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -742,7 +745,7 @@ mod tests {
                 email: "logout-all-user@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: true,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -807,7 +810,7 @@ mod tests {
                 email: "login-user@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: true,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -865,7 +868,7 @@ mod tests {
                 email: "inactive@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: false,
+                user_status: UserStatus::Blocked,
                 is_email_verified: true,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -967,7 +970,7 @@ mod tests {
                 email: "verify-expired@example.com",
                 password_hash: &ph,
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: false,
                 email_verification_token_hash: Some(&token_hash),
                 email_verification_expires_at: Some(past),

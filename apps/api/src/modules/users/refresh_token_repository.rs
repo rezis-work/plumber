@@ -113,7 +113,7 @@ mod tests {
     use crate::modules::auth::refresh_token_hash::hash_refresh_jwt_for_storage;
     use crate::modules::users::repository::{CreateUserParams, UserRepository};
 
-    use super::super::model::Role;
+    use super::super::model::{Role, UserStatus};
 
     #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test refresh_token -- --ignored"]
     #[sqlx::test(migrations = "./migrations")]
@@ -128,7 +128,7 @@ mod tests {
                 email: "refresh-test@example.com",
                 password_hash: "ph",
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: false,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,

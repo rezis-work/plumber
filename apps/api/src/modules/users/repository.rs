@@ -2,11 +2,12 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
-use super::model::{PlumberProfile, Role, User};
+use super::model::{PlumberProfile, Role, User, UserStatus};
 
 const USER_COLUMNS: &str = r#"
-    id, email, password_hash, role, is_active, is_email_verified,
-    email_verification_token_hash, email_verification_expires_at, created_at, updated_at
+    id, email, password_hash, role, user_status, last_login_at, blocked_at, deleted_at,
+    is_email_verified, email_verification_token_hash, email_verification_expires_at,
+    created_at, updated_at
 "#;
 
 #[derive(Debug, Clone)]
@@ -14,7 +15,7 @@ pub struct CreateUserParams<'a> {
     pub email: &'a str,
     pub password_hash: &'a str,
     pub role: Role,
-    pub is_active: bool,
+    pub user_status: UserStatus,
     pub is_email_verified: bool,
     pub email_verification_token_hash: Option<&'a str>,
     pub email_verification_expires_at: Option<DateTime<Utc>>,
@@ -56,7 +57,7 @@ impl UserRepository {
         let q = format!(
             r#"
             INSERT INTO users (
-                email, password_hash, role, is_active,
+                email, password_hash, role, user_status,
                 is_email_verified, email_verification_token_hash, email_verification_expires_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -67,7 +68,7 @@ impl UserRepository {
             .bind(params.email)
             .bind(params.password_hash)
             .bind(params.role)
-            .bind(params.is_active)
+            .bind(params.user_status)
             .bind(params.is_email_verified)
             .bind(params.email_verification_token_hash)
             .bind(params.email_verification_expires_at)
@@ -82,7 +83,7 @@ impl UserRepository {
         let q = format!(
             r#"
             INSERT INTO users (
-                email, password_hash, role, is_active,
+                email, password_hash, role, user_status,
                 is_email_verified, email_verification_token_hash, email_verification_expires_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -93,7 +94,7 @@ impl UserRepository {
             .bind(params.email)
             .bind(params.password_hash)
             .bind(params.role)
-            .bind(params.is_active)
+            .bind(params.user_status)
             .bind(params.is_email_verified)
             .bind(params.email_verification_token_hash)
             .bind(params.email_verification_expires_at)
@@ -112,7 +113,7 @@ impl UserRepository {
             r#"
             INSERT INTO plumber_profiles (user_id, full_name, phone, years_of_experience)
             VALUES ($1, $2, $3, $4)
-            RETURNING user_id, full_name, phone, years_of_experience
+            RETURNING id, user_id, full_name, phone, years_of_experience
             "#,
         )
         .bind(user_id)
@@ -162,7 +163,7 @@ impl UserRepository {
     ) -> Result<Option<PlumberProfile>, sqlx::Error> {
         sqlx::query_as::<_, PlumberProfile>(
             r#"
-            SELECT user_id, full_name, phone, years_of_experience
+            SELECT id, user_id, full_name, phone, years_of_experience
             FROM plumber_profiles
             WHERE user_id = $1
             "#,
@@ -175,6 +176,8 @@ impl UserRepository {
 
 #[cfg(test)]
 mod tests {
+    use super::super::model::UserStatus;
+
     use super::*;
 
     #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test -- --ignored"]
@@ -186,7 +189,7 @@ mod tests {
                 email: "test@example.com",
                 password_hash: "dummy_hash_not_real",
                 role: Role::Client,
-                is_active: true,
+                user_status: UserStatus::Active,
                 is_email_verified: false,
                 email_verification_token_hash: None,
                 email_verification_expires_at: None,
@@ -196,7 +199,8 @@ mod tests {
         assert_eq!(created.email, "test@example.com");
         assert_eq!(created.password_hash(), "dummy_hash_not_real");
         assert_eq!(created.role, Role::Client);
-        assert!(created.is_active);
+        assert_eq!(created.user_status, UserStatus::Active);
+        assert!(created.login_allowed());
         assert!(!created.is_email_verified);
 
         let by_email = repo

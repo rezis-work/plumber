@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::modules::users::Role;
+use crate::modules::users::{Role, UserStatus};
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
@@ -23,6 +23,8 @@ pub struct MeResponse {
     pub id: Uuid,
     pub email: String,
     pub role: Role,
+    pub status: UserStatus,
+    /// Derived: `active` status and not soft-deleted (compat with pre–user_status clients).
     pub is_active: bool,
     pub is_email_verified: bool,
     pub created_at: DateTime<Utc>,
@@ -56,6 +58,8 @@ pub struct UserResponse {
     pub id: Uuid,
     pub email: String,
     pub role: Role,
+    pub status: UserStatus,
+    /// Derived: `active` status and not soft-deleted.
     pub is_active: bool,
     pub is_email_verified: bool,
     pub created_at: DateTime<Utc>,
@@ -98,11 +102,13 @@ pub struct VerifyEmailResponse {
 
 impl From<crate::modules::users::User> for UserResponse {
     fn from(u: crate::modules::users::User) -> Self {
+        let is_active = u.login_allowed();
         Self {
             id: u.id,
             email: u.email,
             role: u.role,
-            is_active: u.is_active,
+            status: u.user_status,
+            is_active,
             is_email_verified: u.is_email_verified,
             created_at: u.created_at,
             updated_at: u.updated_at,
