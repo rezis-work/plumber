@@ -13,6 +13,12 @@ type Props = {
 	editable?: boolean;
 	/** Renders beside the label (e.g. forgot-password link). */
 	labelRight?: ReactNode;
+	/** Stitch MS.3: small caps label above the field. */
+	labelTone?: 'default' | 'overline';
+	/** Filled surface, no border (Stitch card inputs). */
+	inputVariant?: 'default' | 'filled';
+	/** Renders at the end of the input row (e.g. password visibility). */
+	trailingAccessory?: ReactNode;
 };
 
 export function LabeledField({
@@ -24,29 +30,45 @@ export function LabeledField({
 	autoCapitalize = 'none',
 	placeholder,
 	editable = true,
-	labelRight
+	labelRight,
+	labelTone = 'default',
+	inputVariant = 'default',
+	trailingAccessory
 }: Props) {
+	const labelDefaultStyle = labelTone === 'overline' ? styles.labelOverline : styles.label;
+	const labelRowStyle =
+		labelTone === 'overline' ? styles.labelOverlineInRow : styles.labelInRow;
+
 	return (
 		<View style={styles.wrap}>
 			{labelRight ? (
-				<View style={styles.labelRow}>
-					<Text style={styles.labelInRow}>{label}</Text>
+				<View style={[styles.labelRow, labelTone === 'overline' && styles.labelRowOverline]}>
+					<Text style={labelRowStyle}>{label}</Text>
 					{labelRight}
 				</View>
 			) : (
-				<Text style={styles.label}>{label}</Text>
+				<Text style={labelDefaultStyle}>{label}</Text>
 			)}
-			<TextInput
-				editable={editable}
-				value={value}
-				onChangeText={onChangeText}
-				secureTextEntry={secureTextEntry}
-				keyboardType={keyboardType}
-				autoCapitalize={autoCapitalize}
-				placeholder={placeholder}
-				placeholderTextColor={colors.textMuted}
-				style={styles.input}
-			/>
+			<View style={styles.inputOuter}>
+				<TextInput
+					editable={editable}
+					value={value}
+					onChangeText={onChangeText}
+					secureTextEntry={secureTextEntry}
+					keyboardType={keyboardType}
+					autoCapitalize={autoCapitalize}
+					placeholder={placeholder}
+					placeholderTextColor={colors.textMuted}
+					style={[
+						styles.input,
+						inputVariant === 'filled' ? styles.inputFilled : undefined,
+						trailingAccessory ? styles.inputWithAccessory : undefined
+					]}
+				/>
+				{trailingAccessory ? (
+					<View style={styles.trailingSlot}>{trailingAccessory}</View>
+				) : null}
+			</View>
 		</View>
 	);
 }
@@ -70,7 +92,29 @@ const styles = StyleSheet.create({
 		fontWeight: '600',
 		color: colors.text
 	},
+	labelRowOverline: { marginBottom: space[2] },
+	labelOverline: {
+		fontSize: 12,
+		fontWeight: '600',
+		color: colors.textMuted,
+		textTransform: 'uppercase',
+		letterSpacing: 1.2,
+		marginBottom: space[2]
+	},
+	labelOverlineInRow: {
+		fontSize: 12,
+		fontWeight: '600',
+		color: colors.textMuted,
+		textTransform: 'uppercase',
+		letterSpacing: 1.2
+	},
+	inputOuter: {
+		position: 'relative',
+		flexDirection: 'row',
+		alignItems: 'center'
+	},
 	input: {
+		flex: 1,
 		borderWidth: 1,
 		borderColor: colors.border,
 		borderRadius: radius.md,
@@ -79,5 +123,21 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: colors.text,
 		backgroundColor: colors.surfaceElevated
+	},
+	inputFilled: {
+		borderWidth: 0,
+		borderRadius: radius.lg,
+		backgroundColor: colors.surfaceContainerLow,
+		paddingVertical: space[4]
+	},
+	inputWithAccessory: {
+		paddingRight: 56
+	},
+	trailingSlot: {
+		position: 'absolute',
+		right: space[3],
+		top: 0,
+		bottom: 0,
+		justifyContent: 'center'
 	}
 });
