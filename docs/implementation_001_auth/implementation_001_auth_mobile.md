@@ -275,19 +275,26 @@ Manual QA: force-quit after login → reopen → still in session; after logout 
 
 ## Phase M6 — Platform-specific considerations
 
+**Auth transport:** This app follows [ADR 002](./adr_002_mobile_refresh_transport.md) (**Option B** — refresh in **SecureStore**, access in memory, **`fetch` with `credentials: 'omit'`** in [`client.ts`](../../apps/mobile/src/api/client.ts)). **Browser-style cookie persistence is not used** on mobile; M6.x “cookie jar” items are **N/A** unless product reopens Option A.
+
 ### Step M6.1 — iOS
 
-1. Test backgrounding: does cookie jar survive? If not, rely on refresh-on-launch path.
-2. Keychain access: SecureStore behavior with backups—understand Expo docs.
+- **Cookie jar:** **N/A** (ADR 002).
+- **Background vs process kill:** While the app stays in memory, the access token remains in [`AuthContext`](../../apps/mobile/src/auth/AuthContext.tsx). After **force-quit** or OS reclaim, access is gone; **session restore** uses the refresh token in **Keychain** via [`expo-secure-store`](../../apps/mobile/src/auth/secureRefreshToken.ts) and silent **`POST /auth/refresh`** in [`SessionGate`](../../apps/mobile/src/auth/SessionGate.tsx) (see **M4.3**).
+- **Keychain / backups:** Review [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/) for device backup and **`requireAuthentication`** if you need stricter access (optional hardening, not required for baseline M6).
 
 ### Step M6.2 — Android
 
-1. Test network security config for dev.
-2. Cookie persistence across process death—verify.
+- **Cookie jar:** **N/A** (ADR 002).
+- **Refresh storage:** **Keystore** via the same SecureStore module as iOS ([`secureRefreshToken.ts`](../../apps/mobile/src/auth/secureRefreshToken.ts)); cold start behavior matches **M4.3** / `SessionGate`.
+- **Dev HTTP API:** Plain **`http://`** (e.g. LAN IP) is **blocked by default** on recent Android unless cleartext is allowed. [`app.config.ts`](../../apps/mobile/app.config.ts) sets **`android.usesCleartextTraffic: true`** when **`EXPO_PUBLIC_API_URL`** is an **`http:`** origin or **`EXPO_PUBLIC_ANDROID_CLEARTEXT=true`** (see [`.env.example`](../../apps/mobile/.env.example)). **Release / production** should use **HTTPS** only; do not ship cleartext to end users.
 
 ### Step M6.3 — Expo Go vs dev client
 
-1. Some secure features differ; document if testing only in Expo Go.
+- **SecureStore** and auth flows are usable in **Expo Go** for much of local development; behavior can differ from **custom dev clients** and store builds as Expo/SDK evolve.
+- **Recommendation:** Before release, run at least one **EAS dev build** or store-style build and re-verify login, refresh, and logout. Track [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/) release notes for Expo Go vs native-project differences.
+
+**Manual checks tied to M6:** see **Phase M7** (Android HTTP, Expo Go vs dev build, optional background smoke test).
 
 ---
 
@@ -297,6 +304,9 @@ Manual QA: force-quit after login → reopen → still in session; after logout 
 - [ ] **Plumber** signup with full profile → success path.
 - [ ] Login → call protected endpoint → success.
 - [ ] Kill app → reopen → still logged in (refresh path works — see **M4.3** / `SessionGate`).
+- [ ] **M6:** Optional — background app, return, hit a protected screen (access still in memory if process not killed).
+- [ ] **M6:** Android — if using **`http://`** dev API, confirm requests work (cleartext rule in **`app.config.ts`** / **M6.2**); **HTTPS** for anything release-like.
+- [ ] **M6:** Run auth smoke (login / refresh / logout) on an **EAS dev build** or store build, not **Expo Go** only, before ship.
 - [ ] Logout → reopen → login required.
 - [ ] Logout-all from another device/session invalidates mobile session on next refresh attempt.
 - [ ] Wrong login shows generic error only.
