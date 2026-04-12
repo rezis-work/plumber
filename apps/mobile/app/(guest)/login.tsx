@@ -1,15 +1,21 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { loginErrorMessage } from '../../src/api';
-import { validateEmailInput, validatePasswordInput } from '../../src/auth';
+import { apiRequest } from '../../src/api/client';
+import type { MeResponse } from '../../src/api/types';
+import { profileHrefForRole, useAuth, validateEmailInput, validatePasswordInput } from '../../src/auth';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LabeledField, PrimaryButton, Screen } from '../../src/components/ui';
+import { authMeQueryKey } from '../../src/query/authKeys';
 import { useLoginMutation } from '../../src/query';
 import { colors, radius, space } from '../../src/theme';
 
 export default function LoginScreen() {
 	const router = useRouter();
+	const queryClient = useQueryClient();
+	const { setUser } = useAuth();
 	const { verified } = useLocalSearchParams<{ verified?: string | string[] }>();
 	const verifiedRaw = Array.isArray(verified) ? verified[0] : verified;
 	const verifiedBanner = verifiedRaw === '1' || verifiedRaw === 'true';
@@ -39,8 +45,14 @@ export default function LoginScreen() {
 		login.mutate(
 			{ email: emailResult.email, password },
 			{
-				onSuccess: () => {
-					router.replace('/home');
+				onSuccess: async (data) => {
+					const me = await apiRequest<MeResponse>('/auth/me', {
+						method: 'GET',
+						accessToken: data.access_token
+					});
+					queryClient.setQueryData(authMeQueryKey, me);
+					setUser(me);
+					router.replace(profileHrefForRole(me.role));
 				},
 				onError: (err) => {
 					setClientError(loginErrorMessage(err));

@@ -15,6 +15,7 @@ export {
 	YEARS_EXPERIENCE_MAX,
 	type EmailValidationResult
 } from './validation';
+export { profileHrefForRole } from './profilePaths';
 export { SessionGate, useSessionBootstrap } from './SessionGate';
 export {
 	deleteRefreshToken,

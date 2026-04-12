@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import { PrimaryButton, Screen } from '../../src/components/ui';
-import { useAuth } from '../../src/auth';
-import { useAuthMe, useLogoutAllMutation, useLogoutMutation } from '../../src/query';
-import { colors, space } from '../../src/theme';
+import { PrimaryButton, Screen } from '../ui';
+import { useAuth } from '../../auth';
+import { useAuthMe, useLogoutAllMutation, useLogoutMutation } from '../../query';
+import { colors, space } from '../../theme';
 
-export default function HomeScreen() {
+export function ProfileScreen() {
 	const router = useRouter();
 	const { user } = useAuth();
 	const { isFetching } = useAuthMe();
@@ -26,7 +26,7 @@ export default function HomeScreen() {
 	return (
 		<Screen scroll>
 			<StatusBar style="dark" />
-			<Text style={styles.title}>Signed in</Text>
+			<Text style={styles.title}>Profile</Text>
 			<Text style={styles.subtitle}>
 				{user?.email ?? 'Loading profile…'}
 				{isFetching ? ' (updating…)' : ''}

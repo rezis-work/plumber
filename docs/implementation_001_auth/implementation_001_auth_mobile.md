@@ -232,7 +232,7 @@ Use **two registration flows** (separate screens/stacks), matching the API and w
 1. `POST /auth/login` via **`useMutation`** (**MQ.2**); capture access token from JSON.
 2. If cookie-based refresh: confirm subsequent `/auth/refresh` works without extra setup.
 3. If native refresh: capture refresh from agreed field and save to SecureStore (if API supports).
-4. Invalidate or fetch **`/auth/me`** via **`useQuery`** (**MQ.3**); navigate to main app stack.
+4. Invalidate or fetch **`/auth/me`** via **`useQuery`** (**MQ.3**); navigate to main app stack — after login, [`login.tsx`](../../apps/mobile/app/(guest)/login.tsx) fetches **`/auth/me`** with the new access token and **`router.replace(profileHrefForRole(me.role))`** (see [`profilePaths.ts`](../../apps/mobile/src/auth/profilePaths.ts)).
 
 ### Step M4.3 — Session restore on cold start
 
@@ -246,13 +246,11 @@ Manual QA: force-quit after login → reopen → still in session; after logout 
 
 ### Step M4.4 — Logout
 
-1. Call `/auth/logout` via **`useMutation`** (**MQ.2**) (with cookie or body per contract).
-2. Clear SecureStore + memory; **clear TanStack Query auth cache** (**MQ.2**); reset navigation to auth stack.
+**Implemented:** [`useLogoutMutation`](../../apps/mobile/src/query/authMutations.ts) → [`authLogout`](../../apps/mobile/src/api/authApi.ts) (native JSON body when refresh exists); **`onSuccess`** → [`clearSession`](../../apps/mobile/src/auth/AuthContext.tsx); root [`app/_layout.tsx`](../../apps/mobile/app/_layout.tsx) **`onSessionCleared`** → **`removeQueries({ queryKey: ['auth'] })`**. UI: [`ProfileScreen`](../../apps/mobile/src/components/account/ProfileScreen.tsx) (**Log out** → **`router.replace('/')`**).
 
 ### Step M4.5 — Logout all
 
-1. From settings, call `/auth/logout-all` with Bearer access (**`useMutation`**).
-2. Clear all local tokens; **clear query cache**; reset navigation.
+**Implemented:** [`useLogoutAllMutation`](../../apps/mobile/src/query/authMutations.ts) → [`authLogoutAll`](../../apps/mobile/src/api/authApi.ts); same local teardown as M4.4. UI: **Log out all devices** on [`ProfileScreen`](../../apps/mobile/src/components/account/ProfileScreen.tsx).
 
 ### Step M4.6 — Token refresh interval (optional)
 
@@ -264,13 +262,14 @@ Manual QA: force-quit after login → reopen → still in session; after logout 
 
 ### Step M5.1 — Auth stack vs app stack
 
-1. Use Expo Router or React Navigation pattern: unauthenticated stack (login/register) vs authenticated stack (tabs/drawer).
-2. Gate switch on “has valid access or successful silent refresh”.
+**Implemented (Expo Router):**
+
+- **Guest:** [`app/(guest)/_layout.tsx`](../../apps/mobile/app/(guest)/_layout.tsx) — no access token → guest **`Stack`** (`/`, `/login`, `/register`, `/verify-email`). With token, **`useAuthMe`** runs; while **`/auth/me`** is loading, full-screen **`ActivityIndicator`**; when **`user`** (or query data) is ready → **`<Redirect href={profileHrefForRole(role)} />`** so authenticated users cannot stay on marketing/auth routes.
+- **App:** [`app/(app)/_layout.tsx`](../../apps/mobile/app/(app)/_layout.tsx) — no token → **`Redirect href="/"`**; with token, **`useAuthMe`** keeps **`AuthContext.user`** warm. Role profile routes: **`/{client|plumber|admin}/profile`** (see [`profilePaths.ts`](../../apps/mobile/src/auth/profilePaths.ts)). **`/home`** removed in favor of role profiles.
 
 ### Step M5.2 — Role-based screens
 
-1. Restrict plumber-only and admin-only screens by `role` from `/auth/me`.
-2. Deep links: if user opens a plumber URL without role, show forbidden or redirect.
+**Implemented:** Nested layouts [`(app)/client/_layout.tsx`](../../apps/mobile/app/(app)/client/_layout.tsx), [`plumber/_layout.tsx`](../../apps/mobile/app/(app)/plumber/_layout.tsx), [`admin/_layout.tsx`](../../apps/mobile/app/(app)/admin/_layout.tsx) — if **`user.role`** does not match the segment → **`Redirect href="/forbidden"`**. [`forbidden.tsx`](../../apps/mobile/app/(app)/forbidden.tsx) offers **Go to my profile** (or home if no user).
 
 ---
 
