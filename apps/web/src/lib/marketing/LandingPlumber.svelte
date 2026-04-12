@@ -1,45 +1,59 @@
+<script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- hrefs use pathWithLang for ?lang= */
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefRegisterPlumber = $derived(`${base}${pathWithLang('/register/plumber', sp, loc)}`);
+</script>
+
 <section class="plumber lp-section" id="for-plumbers">
 	<div class="lp-wrap">
 		<div class="plumber__panel">
 			<div class="plumber__copy">
-				<h2 class="plumber__title">Grow Your Plumbing Business with Fixavon</h2>
+				<h2 class="plumber__title">{translate(loc, 'marketing.plumberSection.title')}</h2>
 				<ul class="plumber__list">
 					<li class="plumber__li">
 						<span class="material-symbols-outlined plumber__check">check</span>
 						<div>
-							<h4 class="plumber__li-title">More requests</h4>
+							<h4 class="plumber__li-title">{translate(loc, 'marketing.plumberSection.li1Title')}</h4>
 							<p class="plumber__li-text lp-text-muted">
-								Stop looking for clients; let them find you through our app.
+								{translate(loc, 'marketing.plumberSection.li1Text')}
 							</p>
 						</div>
 					</li>
 					<li class="plumber__li">
 						<span class="material-symbols-outlined plumber__check">check</span>
 						<div>
-							<h4 class="plumber__li-title">Easy management</h4>
+							<h4 class="plumber__li-title">{translate(loc, 'marketing.plumberSection.li2Title')}</h4>
 							<p class="plumber__li-text lp-text-muted">
-								Handle bookings, payments, and schedules in one simple tool.
+								{translate(loc, 'marketing.plumberSection.li2Text')}
 							</p>
 						</div>
 					</li>
 					<li class="plumber__li">
 						<span class="material-symbols-outlined plumber__check">check</span>
 						<div>
-							<h4 class="plumber__li-title">Build reputation</h4>
+							<h4 class="plumber__li-title">{translate(loc, 'marketing.plumberSection.li3Title')}</h4>
 							<p class="plumber__li-text lp-text-muted">
-								Showcase your skills with verified reviews from local customers.
+								{translate(loc, 'marketing.plumberSection.li3Text')}
 							</p>
 						</div>
 					</li>
 				</ul>
-				<a class="lp-btn lp-btn--primary" href="/register/plumber" style="margin-top: var(--space-4);">Join as Plumber</a>
+				<a class="lp-btn lp-btn--primary" href={hrefRegisterPlumber} style="margin-top: var(--space-4);"
+					>{translate(loc, 'marketing.plumberSection.cta')}</a
+				>
 			</div>
 			<div class="plumber__media">
 				<div class="plumber__img-wrap">
 					<img
 						class="plumber__img"
 						src="/marketing/plumber-hero.png"
-						alt="Professional plumber in branded uniform with tools"
+						alt={translate(loc, 'marketing.plumberSection.imageAlt')}
 						width="560"
 						height="560"
 					/>
@@ -52,7 +66,7 @@
 						<p class="plumber__stat-num">+45%</p>
 					</div>
 					<p class="plumber__stat-note lp-text-muted">
-						Average income growth for our Tbilisi partners in the first 3 months.
+						{translate(loc, 'marketing.plumberSection.statNote')}
 					</p>
 				</div>
 			</div>

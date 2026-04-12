@@ -1,7 +1,9 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
+/* eslint-disable svelte/no-navigation-without-resolve -- goto uses pathWithLangFromWindow for ?lang= */
 import { base } from '$app/paths';
 import { clearSession, session } from '$lib/auth/session.svelte';
+import { pathWithLangFromWindow } from '$lib/i18n/url';
 import { ApiError, apiRequest, authMe, authRefresh } from './client';
 import type { ApiRequestOptions } from './client';
 
@@ -50,7 +52,7 @@ export async function apiRequestAuthenticated<T>(
 			session.lastError = null;
 		} catch {
 			clearSession();
-			void goto(`${base}/login`);
+			void goto(`${base}${pathWithLangFromWindow('/login')}`);
 			throw e;
 		}
 

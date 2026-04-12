@@ -1,9 +1,30 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	/* eslint-disable svelte/no-navigation-without-resolve -- links use pathWithLang for ?lang= */
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { ApiError, authRegisterClient } from '$lib/api/client';
 	import { PENDING_EMAIL_VERIFICATION_KEY } from '$lib/auth/pendingVerification';
+	import { translateAuthApiError } from '$lib/auth/translateApiError';
+	import {
+		translateEmailValidation,
+		translatePasswordValidation
+	} from '$lib/auth/validationMessages';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+	import SeoHead from '$lib/seo/SeoHead.svelte';
 	import { validateEmailInput, validatePasswordInput } from '$lib/auth/validation';
+
+	const ACTIVE_PLUMBERS = 3;
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefHome = $derived(`${base}${pathWithLang('/', sp, loc)}`);
+	const hrefLogin = $derived(`${base}${pathWithLang('/login', sp, loc)}`);
+	const hrefRegisterPlumber = $derived(`${base}${pathWithLang('/register/plumber', sp, loc)}`);
+
+	const pageTitle = $derived(translate(loc, 'auth.register.client.title'));
+	const pageDescription = $derived(translate(loc, 'auth.register.client.metaDescription'));
 
 	let email = $state('');
 	let password = $state('');
@@ -15,20 +36,20 @@
 		e.preventDefault();
 		clientError = null;
 
-		const emailResult = validateEmailInput(email);
+		const emailResult = translateEmailValidation(loc, validateEmailInput(email));
 		if (!emailResult.ok) {
 			clientError = emailResult.message;
 			return;
 		}
 
-		const pwErr = validatePasswordInput(password);
+		const pwErr = translatePasswordValidation(loc, validatePasswordInput(password));
 		if (pwErr) {
 			clientError = pwErr;
 			return;
 		}
 
 		if (password !== confirmPassword) {
-			clientError = 'Passwords do not match.';
+			clientError = translate(loc, 'auth.validation.passwordMismatch');
 			return;
 		}
 
@@ -45,18 +66,12 @@
 					expires_at: res.email_verification_expires_at
 				})
 			);
-			await goto(`${base}/verify-email`);
+			await goto(`${base}${pathWithLang('/verify-email', page.url.searchParams, page.data.locale)}`);
 		} catch (err) {
 			if (err instanceof ApiError) {
-				if (err.status === 409 && err.code === 'conflict') {
-					clientError = 'An account with this email already exists.';
-				} else if (err.status === 400 && err.code === 'validation_error') {
-					clientError = err.message ?? 'Please check your input and try again.';
-				} else {
-					clientError = 'Something went wrong. Please try again.';
-				}
+				clientError = translateAuthApiError(loc, err);
 			} else {
-				clientError = 'Network error. Check your connection and try again.';
+				clientError = translate(loc, 'auth.api.network');
 			}
 		} finally {
 			submitting = false;
@@ -64,8 +79,15 @@
 	}
 </script>
 
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	locale={loc}
+	url={page.url}
+	siteOrigin={page.data.siteOrigin}
+/>
+
 <svelte:head>
-	<title>Create account | Fixavon</title>
 	<link
 		rel="stylesheet"
 		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
@@ -85,11 +107,11 @@
 			<div class="hero__overlay"></div>
 		</div>
 		<div class="hero__content">
-			<a class="hero__logo" href="{base}/">Fixavon</a>
+			<a class="hero__logo" href={hrefHome}>{translate(loc, 'auth.shared.brand')}</a>
 			<div class="hero__copy">
-				<h1 id="hero-heading" class="hero__title">Reliable Help is Just a Click Away.</h1>
+				<h1 id="hero-heading" class="hero__title">{translate(loc, 'auth.register.client.heroTitle')}</h1>
 				<p class="hero__lead">
-					Join thousands of Tbilisi households who trust Fixavon for their plumbing needs.
+					{translate(loc, 'auth.register.client.heroLead')}
 				</p>
 				<div class="hero__trust">
 					<div class="hero__trust-row">
@@ -97,8 +119,8 @@
 							<span class="material-symbols-outlined">verified</span>
 						</div>
 						<div>
-							<p class="hero__trust-title">Vetted Professionals</p>
-							<p class="hero__trust-meta">Rigorous background checks for every plumber.</p>
+							<p class="hero__trust-title">{translate(loc, 'auth.register.client.trustVettedTitle')}</p>
+							<p class="hero__trust-meta">{translate(loc, 'auth.register.client.trustVettedMeta')}</p>
 						</div>
 					</div>
 					<div class="hero__trust-row">
@@ -106,15 +128,17 @@
 							<span class="material-symbols-outlined">schedule</span>
 						</div>
 						<div>
-							<p class="hero__trust-title">24/7 Availability</p>
-							<p class="hero__trust-meta">Emergency services across Tbilisi anytime.</p>
+							<p class="hero__trust-title">{translate(loc, 'auth.register.client.trust247Title')}</p>
+							<p class="hero__trust-meta">{translate(loc, 'auth.register.client.trust247Meta')}</p>
 						</div>
 					</div>
 				</div>
 			</div>
 			<div class="hero__pill">
 				<span class="hero__dot"></span>
-				<span class="hero__pill-text">3 plumbers active in Tbilisi right now.</span>
+				<span class="hero__pill-text"
+					>{translate(loc, 'auth.register.client.pillText', { count: ACTIVE_PLUMBERS })}</span
+				>
 			</div>
 		</div>
 	</section>
@@ -122,9 +146,9 @@
 	<section class="panel" aria-labelledby="register-heading">
 		<div class="panel__inner">
 			<div class="panel__header">
-				<h2 id="register-heading" class="panel__title">Create Client Account</h2>
+				<h2 id="register-heading" class="panel__title">{translate(loc, 'auth.register.client.panelTitle')}</h2>
 				<p class="panel__subtitle">
-					Create your account to request trusted plumbers in Tbilisi.
+					{translate(loc, 'auth.register.client.panelSubtitle')}
 				</p>
 			</div>
 
@@ -135,7 +159,7 @@
 					{/if}
 
 					<div class="field">
-						<label class="field__label" for="reg-email">Email</label>
+						<label class="field__label" for="reg-email">{translate(loc, 'auth.shared.email')}</label>
 						<div class="field__input-wrap">
 							<span class="material-symbols-outlined field__icon">mail</span>
 							<input
@@ -144,7 +168,7 @@
 								type="email"
 								name="email"
 								autocomplete="email"
-								placeholder="you@example.com"
+								placeholder={translate(loc, 'auth.login.emailPlaceholder')}
 								bind:value={email}
 								disabled={submitting}
 								required
@@ -153,7 +177,7 @@
 					</div>
 
 					<div class="field">
-						<label class="field__label" for="reg-password">Password</label>
+						<label class="field__label" for="reg-password">{translate(loc, 'auth.shared.password')}</label>
 						<div class="field__input-wrap">
 							<span class="material-symbols-outlined field__icon">lock</span>
 							<input
@@ -162,7 +186,7 @@
 								type="password"
 								name="password"
 								autocomplete="new-password"
-								placeholder="••••••••"
+								placeholder={translate(loc, 'auth.login.passwordPlaceholder')}
 								bind:value={password}
 								disabled={submitting}
 								required
@@ -170,12 +194,14 @@
 						</div>
 						<p class="field__hint">
 							<span class="material-symbols-outlined field__hint-icon">info</span>
-							Must be at least 8 characters long.
+							{translate(loc, 'auth.register.client.passwordHint')}
 						</p>
 					</div>
 
 					<div class="field">
-						<label class="field__label" for="reg-confirm">Confirm Password</label>
+						<label class="field__label" for="reg-confirm"
+							>{translate(loc, 'auth.register.client.confirmPassword')}</label
+						>
 						<div class="field__input-wrap">
 							<span class="material-symbols-outlined field__icon">shield</span>
 							<input
@@ -184,7 +210,7 @@
 								type="password"
 								name="confirm_password"
 								autocomplete="new-password"
-								placeholder="••••••••"
+								placeholder={translate(loc, 'auth.login.passwordPlaceholder')}
 								bind:value={confirmPassword}
 								disabled={submitting}
 								required
@@ -194,7 +220,9 @@
 
 					<div class="form__actions">
 						<button class="btn-submit" type="submit" disabled={submitting}>
-							{submitting ? 'Creating…' : 'Create Account'}
+							{submitting
+								? translate(loc, 'auth.register.client.creating')
+								: translate(loc, 'auth.register.client.createAccount')}
 						</button>
 					</div>
 				</form>
@@ -202,20 +230,20 @@
 
 			<div class="panel__footer">
 				<p class="panel__login">
-					Already have an account?
-					<a href="{base}/login">Log In</a>
+					{translate(loc, 'auth.register.client.alreadyHave')}
+					<a href={hrefLogin}>{translate(loc, 'auth.shared.logIn')}</a>
 				</p>
 				<hr class="panel__rule" />
-				<a class="btn-plumber" href="{base}/register/plumber">
+				<a class="btn-plumber" href={hrefRegisterPlumber}>
 					<span class="material-symbols-outlined">engineering</span>
-					Are you a professional? Register as Plumber
+					{translate(loc, 'auth.register.client.plumberCta')}
 				</a>
 			</div>
 
 			<div class="legal">
-				<a href="{base}/">Terms of Service</a>
-				<a href="{base}/">Privacy Policy</a>
-				<a href="{base}/">Contact Support</a>
+				<a href={hrefHome}>{translate(loc, 'auth.shared.termsOfService')}</a>
+				<a href={hrefHome}>{translate(loc, 'auth.shared.privacyPolicy')}</a>
+				<a href={hrefHome}>{translate(loc, 'auth.shared.contactSupport')}</a>
 			</div>
 		</div>
 	</section>

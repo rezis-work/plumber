@@ -2,27 +2,35 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import AppShellNav from '$lib/account/AppShellNav.svelte';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
 	import { session } from '$lib/auth/session.svelte';
 
 	let { children } = $props();
+
+	const loading = $derived(translate(page.data.locale, 'common.loading'));
+	const redirecting = $derived(translate(page.data.locale, 'common.redirecting'));
 
 	$effect(() => {
 		if (!browser) return;
 		if (session.hydrating) return;
 		if (session.user === null || session.accessToken === null) {
-			void goto(`${base}/login`, { replaceState: true });
+			const path = pathWithLang('/login', page.url.searchParams, page.data.locale);
+			// eslint-disable-next-line svelte/no-navigation-without-resolve
+			void goto(`${base}${path}`, { replaceState: true });
 		}
 	});
 </script>
 
 {#if session.hydrating}
 	<div class="gate">
-		<p class="gate__text">Loading…</p>
+		<p class="gate__text">{loading}</p>
 	</div>
 {:else if session.user === null || session.accessToken === null}
 	<div class="gate">
-		<p class="gate__text">Redirecting…</p>
+		<p class="gate__text">{redirecting}</p>
 	</div>
 {:else}
 	<div class="shell-wrap">

@@ -12,6 +12,19 @@ Auth route list: [`src/lib/api/routes.md`](src/lib/api/routes.md).
 
 ---
 
+## Internationalization (T0–T4)
+
+- **Locales, default, and missing-key fallback** — [ADR 003 appendix](../../docs/implementation_002_translations/adr_003_locale_routing_and_seo.md#appendix--web-locale-and-message-defaults-implementation-002-t0).
+- **Message key naming** (dot-separated keys, alignment with mobile) — [`docs/i18n-keys.md`](docs/i18n-keys.md) (includes **ICU / Intl** patterns for Phase T3).
+- **Typed config** — [`src/lib/i18n/config.ts`](src/lib/i18n/config.ts).
+- **URL `lang` query** — redirect normalization and helpers: [`src/hooks.server.ts`](src/hooks.server.ts), [`src/lib/i18n/url.ts`](src/lib/i18n/url.ts) (see ADR [§3 recommended](../../docs/implementation_002_translations/adr_003_locale_routing_and_seo.md)).
+- **Runtime messages** — JSON per locale in [`src/lib/i18n/messages/`](src/lib/i18n/messages/) (`marketing`, `auth`, `error`, `common`); root [`+layout.server.ts`](src/routes/+layout.server.ts) exposes `data.messages`; use [`translate.ts`](src/lib/i18n/translate.ts) (`translate(locale, 'dot.key', values?)`) in components. Same module on server and client avoids hydration skew.
+- **SSR / SEO (Phase T4)** — Guest marketing and auth routes use **server-side rendering** for translated HTML. Production: **`pnpm build`** then **`pnpm start`** ([`@sveltejs/adapter-node`](https://svelte.dev/docs/kit/adapter-node)). See [implementation doc § Phase T4](../../docs/implementation_002_translations/implementation_002_translations_frontend.md#phase-t4--ssr-visible-content-for-seo).
+- **Canonical / hreflang (Phase T6)** — Set **`PUBLIC_SITE_URL`** (HTTPS, no trailing slash) in production so `<link rel="canonical">`, `hreflang` alternates, and `og:url` use your public host behind a reverse proxy. If unset, the request origin is used (fine for local dev).
+- **Georgian and Russian copy** is intended to be **native-quality** for production. Any **machine-translated** placeholder strings must be tracked for human review (internal ticket: **`I18N-KA-RU-REVIEW`**).
+
+---
+
 ## Creating a project (template boilerplate)
 
 If you're seeing this, you've probably already done this step. Congrats!
@@ -44,9 +57,13 @@ npm run dev -- --open
 To create a production version of your app:
 
 ```sh
-npm run build
+pnpm build
 ```
 
-You can preview the production build with `npm run preview`.
+Run the **Node** server (SSR, including localized HTML for SEO):
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```sh
+pnpm start
+```
+
+(`vite preview` serves the client shell only; use `pnpm start` after `pnpm build` to verify production SSR locally.)

@@ -1,9 +1,15 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- links use pathWithLang for ?lang= */
 	import { browser } from '$app/environment';
-	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { ApiError, authVerifyEmail } from '$lib/api/client';
+	import { translateAuthApiError } from '$lib/auth/translateApiError';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+	import SeoHead from '$lib/seo/SeoHead.svelte';
 	import {
 		PENDING_EMAIL_VERIFICATION_KEY,
 		type PendingEmailVerification
@@ -18,6 +24,14 @@
 	let succeeded = $state(false);
 	/** Dev-only: expiry from registration handoff */
 	let devExpiresAt = $state<string | null>(null);
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefHome = $derived(`${base}${pathWithLang('/', sp, loc)}`);
+	const hrefLogin = $derived(`${base}${pathWithLang('/login', sp, loc)}`);
+
+	const pageTitle = $derived(translate(loc, 'auth.verify.title'));
+	const pageDescription = $derived(translate(loc, 'auth.verify.metaDescription'));
 
 	function readUrlToken(): string {
 		if (!browser) return '';
@@ -58,7 +72,7 @@
 		clientError = null;
 		const t = token.trim();
 		if (!t) {
-			clientError = 'Enter the verification code from your email.';
+			clientError = translate(loc, 'auth.verify.enterToken');
 			return;
 		}
 
@@ -67,20 +81,15 @@
 			await authVerifyEmail({ token: t });
 			succeeded = true;
 			await new Promise((r) => setTimeout(r, 900));
-			await goto(`${base}/login?verified=1`);
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- one-shot query merge for post-verify redirect
+			const loginParams = new URLSearchParams(page.url.searchParams);
+			loginParams.set('verified', '1');
+			await goto(`${base}${pathWithLang('/login', loginParams, page.data.locale)}`);
 		} catch (err) {
 			if (err instanceof ApiError) {
-				if (err.status === 400 && err.code === 'validation_error') {
-					clientError = err.message ?? 'That code does not look valid. Check and try again.';
-				} else if (err.status === 401 && err.code === 'invalid_token') {
-					clientError = 'This verification code is not valid. Request a new one when available.';
-				} else if (err.status === 410 && err.code === 'token_expired') {
-					clientError = 'This link has expired. Sign up again or request a new email when available.';
-				} else {
-					clientError = 'Something went wrong. Please try again.';
-				}
+				clientError = translateAuthApiError(loc, err);
 			} else {
-				clientError = 'Network error. Check your connection and try again.';
+				clientError = translate(loc, 'auth.api.network');
 			}
 		} finally {
 			submitting = false;
@@ -88,8 +97,15 @@
 	}
 </script>
 
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	locale={loc}
+	url={page.url}
+	siteOrigin={page.data.siteOrigin}
+/>
+
 <svelte:head>
-	<title>Verify your email | Fixavon</title>
 	<link
 		rel="stylesheet"
 		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
@@ -103,7 +119,7 @@
 	<main class="main">
 		<div class="card">
 			<div class="brand">
-				<a class="brand__link" href="{base}/">Fixavon</a>
+				<a class="brand__link" href={hrefHome}>{translate(loc, 'auth.shared.brand')}</a>
 			</div>
 
 			<div class="body">
@@ -117,21 +133,20 @@
 					</div>
 				</div>
 
-				<h1 class="title">Verify your email</h1>
+				<h1 class="title">{translate(loc, 'auth.verify.heading')}</h1>
 				<p class="lead">
-					Enter the verification code we provided (for now, shown in the app after you register). When email
-					delivery is enabled, you’ll paste the code from your inbox instead.
+					{translate(loc, 'auth.verify.lead')}
 				</p>
 
 				{#if import.meta.env.DEV && devExpiresAt}
-					<p class="dev-hint">Development: code expires {devExpiresAt}</p>
+					<p class="dev-hint">{translate(loc, 'auth.verify.devExpires', { expiresAt: devExpiresAt })}</p>
 				{/if}
 
 				{#if succeeded}
-					<p class="success" role="status">Email verified. Redirecting to log in…</p>
+					<p class="success" role="status">{translate(loc, 'auth.verify.success')}</p>
 				{:else}
 					<form class="form" onsubmit={onsubmit}>
-						<label class="label" for="verify-token">Verification code</label>
+						<label class="label" for="verify-token">{translate(loc, 'auth.verify.codeLabel')}</label>
 						<input
 							id="verify-token"
 							class="input"
@@ -139,7 +154,7 @@
 							name="token"
 							autocomplete="one-time-code"
 							spellcheck="false"
-							placeholder="64-character code"
+							placeholder={translate(loc, 'auth.verify.codePlaceholder')}
 							bind:value={token}
 							disabled={submitting}
 						/>
@@ -149,35 +164,35 @@
 						{/if}
 
 						<button class="btn btn--primary" type="submit" disabled={submitting}>
-							{submitting ? 'Verifying…' : 'Verify email'}
+							{submitting ? translate(loc, 'auth.verify.verifying') : translate(loc, 'auth.verify.submit')}
 						</button>
 
 						<button class="btn btn--ghost" type="button" disabled aria-disabled="true">
-							Resend verification email
-							<span class="btn__soon">(coming soon)</span>
+							{translate(loc, 'auth.verify.resend')}
+							<span class="btn__soon">{translate(loc, 'auth.verify.comingSoon')}</span>
 						</button>
 					</form>
 				{/if}
 
-				<a class="back" href="{base}/login">
+				<a class="back" href={hrefLogin}>
 					<span class="material-symbols-outlined back__icon">arrow_back</span>
-					Back to log in
+					{translate(loc, 'auth.verify.backToLogin')}
 				</a>
 
 				<div class="hints">
 					<div class="hints__item">
 						<span class="material-symbols-outlined hints__icon">info</span>
-						<span>Check your spam folder</span>
+						<span>{translate(loc, 'auth.verify.hintSpam')}</span>
 					</div>
 					<div class="hints__item">
 						<span class="material-symbols-outlined hints__icon">schedule</span>
-						<span>Codes expire after the time shown in your app</span>
+						<span>{translate(loc, 'auth.verify.hintExpiry')}</span>
 					</div>
 				</div>
 			</div>
 
 			<div class="trust">
-				<p class="trust__text">Tbilisi&apos;s #1 trusted plumbing network</p>
+				<p class="trust__text">{translate(loc, 'auth.verify.trustLine')}</p>
 			</div>
 		</div>
 	</main>

@@ -1,10 +1,19 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- hrefs use pathWithLang for ?lang= */
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte';
+	import { pathWithLang } from '$lib/i18n/url';
 	import { profilePathForRole } from '$lib/auth/profilePaths';
 	import { session } from '$lib/auth/session.svelte';
 
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+
 	const profileHref = $derived(
-		session.user ? `${base}${profilePathForRole(session.user.role)}` : `${base}/`
+		session.user
+			? `${base}${pathWithLang(profilePathForRole(session.user.role), sp, loc)}`
+			: `${base}${pathWithLang('/', sp, loc)}`
 	);
 </script>
 
@@ -12,6 +21,7 @@
 	<div class="shell__inner">
 		<a class="shell__brand" href={profileHref}>Fixavon</a>
 		<nav class="shell__nav" aria-label="Account">
+			<LocaleSwitcher />
 			{#if session.user}
 				<a class="shell__link" href={profileHref}>Profile</a>
 			{/if}
@@ -49,7 +59,7 @@
 	.shell__nav {
 		display: flex;
 		align-items: center;
-		gap: var(--space-6);
+		gap: var(--space-4);
 	}
 
 	.shell__link {

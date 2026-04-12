@@ -1,9 +1,16 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { translate } from '$lib/i18n/translate';
+
+	const loc = $derived(page.data.locale);
+</script>
+
 <section class="how lp-section">
 	<div class="lp-wrap">
 		<div class="how__intro">
-			<h2 class="lp-heading-lg">How it works</h2>
+			<h2 class="lp-heading-lg">{translate(loc, 'marketing.howItWorks.title')}</h2>
 			<p class="how__sub lp-text-muted">
-				Getting a professional plumber in Tbilisi has never been easier. Four simple steps to peace of mind.
+				{translate(loc, 'marketing.howItWorks.subtitle')}
 			</p>
 		</div>
 		<div class="how__grid">
@@ -12,9 +19,9 @@
 					<div class="how__icon-wrap">
 						<span class="material-symbols-outlined how__icon">edit_note</span>
 					</div>
-					<h3 class="how__title">Describe issue</h3>
+					<h3 class="how__title">{translate(loc, 'marketing.howItWorks.step1Title')}</h3>
 					<p class="how__desc lp-text-muted">
-						Tell us what's wrong—from a leaky faucet to full installation.
+						{translate(loc, 'marketing.howItWorks.step1Desc')}
 					</p>
 				</div>
 				<span class="how__chevron material-symbols-outlined md-only" aria-hidden="true">chevron_right</span>
@@ -24,9 +31,9 @@
 					<div class="how__icon-wrap">
 						<span class="material-symbols-outlined how__icon">person_search</span>
 					</div>
-					<h3 class="how__title">Get matched</h3>
+					<h3 class="how__title">{translate(loc, 'marketing.howItWorks.step2Title')}</h3>
 					<p class="how__desc lp-text-muted">
-						We connect you with the best available local professionals.
+						{translate(loc, 'marketing.howItWorks.step2Desc')}
 					</p>
 				</div>
 				<span class="how__chevron material-symbols-outlined md-only" aria-hidden="true">chevron_right</span>
@@ -36,9 +43,9 @@
 					<div class="how__icon-wrap">
 						<span class="material-symbols-outlined how__icon">event_available</span>
 					</div>
-					<h3 class="how__title">Confirm booking</h3>
+					<h3 class="how__title">{translate(loc, 'marketing.howItWorks.step3Title')}</h3>
 					<p class="how__desc lp-text-muted">
-						Pick a time that fits your schedule and confirm the price.
+						{translate(loc, 'marketing.howItWorks.step3Desc')}
 					</p>
 				</div>
 				<span class="how__chevron material-symbols-outlined md-only" aria-hidden="true">chevron_right</span>
@@ -48,9 +55,9 @@
 					<div class="how__icon-wrap how__icon-wrap--tertiary">
 						<span class="material-symbols-outlined how__icon how__icon--fill">task_alt</span>
 					</div>
-					<h3 class="how__title">Get job done</h3>
+					<h3 class="how__title">{translate(loc, 'marketing.howItWorks.step4Title')}</h3>
 					<p class="how__desc lp-text-muted">
-						Relax while our professional takes care of everything.
+						{translate(loc, 'marketing.howItWorks.step4Desc')}
 					</p>
 				</div>
 			</div>

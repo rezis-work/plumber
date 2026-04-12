@@ -1,3 +1,19 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { translate } from '$lib/i18n/translate';
+
+	const loc = $derived(page.data.locale);
+	const COV_ACTIVE = 3;
+	const districtKeys = [
+		'marketing.coverage.vake',
+		'marketing.coverage.saburtalo',
+		'marketing.coverage.dighomi',
+		'marketing.coverage.gldani',
+		'marketing.coverage.isani',
+		'marketing.coverage.samgori'
+	] as const;
+</script>
+
 <section class="cov lp-section">
 	<div class="lp-wrap cov__grid">
 		<div class="cov__map-block">
@@ -5,27 +21,29 @@
 				<img
 					class="cov__map"
 					src="/marketing/tbilisi-coverage.jpg"
-					alt="Stylized map of Tbilisi districts"
+					alt={translate(loc, 'marketing.coverage.mapAlt')}
 					width="800"
 					height="400"
 				/>
 				<div class="cov__map-grad" aria-hidden="true"></div>
 				<div class="cov__badge">
 					<span class="cov__dot lp-pulse" aria-hidden="true"></span>
-					<span class="cov__badge-text">3 Active in Vake</span>
+					<span class="cov__badge-text"
+						>{translate(loc, 'marketing.coverage.badge', { count: COV_ACTIVE })}</span
+					>
 				</div>
 			</div>
 		</div>
 		<div class="cov__copy">
-			<h2 class="lp-heading-lg">Tbilisi Coverage</h2>
+			<h2 class="lp-heading-lg">{translate(loc, 'marketing.coverage.title')}</h2>
 			<p class="cov__lead lp-text-muted">
-				We serve the entire capital. Wherever you are, a Fixavon professional is nearby.
+				{translate(loc, 'marketing.coverage.lead')}
 			</p>
 			<div class="cov__districts">
-				{#each ['Vake', 'Saburtalo', 'Didi Dighomi', 'Gldani', 'Isani', 'Samgori'] as d}
+				{#each districtKeys as key}
 					<div class="cov__district">
 						<span class="material-symbols-outlined cov__pin">location_on</span>
-						<span class="cov__district-name">{d}</span>
+						<span class="cov__district-name">{translate(loc, key)}</span>
 					</div>
 				{/each}
 			</div>

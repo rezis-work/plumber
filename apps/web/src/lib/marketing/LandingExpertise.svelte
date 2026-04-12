@@ -1,37 +1,49 @@
+<script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- hrefs use pathWithLang for ?lang= */
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefRegister = $derived(`${base}${pathWithLang('/register', sp, loc)}`);
+</script>
+
 <section class="exp lp-section" id="services">
 	<div class="lp-wrap">
 		<div class="exp__intro">
-			<h2 class="exp__title lp-heading-lg">Our Expertise</h2>
-			<p class="exp__sub">Comprehensive plumbing solutions for every household need.</p>
+			<h2 class="exp__title lp-heading-lg">{translate(loc, 'marketing.expertise.title')}</h2>
+			<p class="exp__sub">{translate(loc, 'marketing.expertise.subtitle')}</p>
 		</div>
 		<div class="exp__grid">
 			<button type="button" class="exp__tile">
 				<span class="material-symbols-outlined exp__icon">water_damage</span>
-				<span class="exp__label">Pipe leaks</span>
+				<span class="exp__label">{translate(loc, 'marketing.expertise.pipeLeaks')}</span>
 			</button>
 			<button type="button" class="exp__tile">
 				<span class="material-symbols-outlined exp__icon">format_color_reset</span>
-				<span class="exp__label">Clogged drains</span>
+				<span class="exp__label">{translate(loc, 'marketing.expertise.cloggedDrains')}</span>
 			</button>
 			<button type="button" class="exp__tile">
 				<span class="material-symbols-outlined exp__icon">potted_plant</span>
-				<span class="exp__label">Toilet repair</span>
+				<span class="exp__label">{translate(loc, 'marketing.expertise.toiletRepair')}</span>
 			</button>
 			<button type="button" class="exp__tile">
 				<span class="material-symbols-outlined exp__icon">countertops</span>
-				<span class="exp__label">Sink repair</span>
+				<span class="exp__label">{translate(loc, 'marketing.expertise.sinkRepair')}</span>
 			</button>
 			<button type="button" class="exp__tile">
 				<span class="material-symbols-outlined exp__icon">hot_tub</span>
-				<span class="exp__label">Water heater</span>
+				<span class="exp__label">{translate(loc, 'marketing.expertise.waterHeater')}</span>
 			</button>
 			<button type="button" class="exp__tile">
 				<span class="material-symbols-outlined exp__icon">plumbing</span>
-				<span class="exp__label">Installation</span>
+				<span class="exp__label">{translate(loc, 'marketing.expertise.installation')}</span>
 			</button>
-			<a class="exp__tile exp__tile--cta" href="/register">
+			<a class="exp__tile exp__tile--cta" href={hrefRegister}>
 				<span class="material-symbols-outlined exp__icon exp__icon--on-cta">e911_emergency</span>
-				<span class="exp__label exp__label--bold">Emergency</span>
+				<span class="exp__label exp__label--bold">{translate(loc, 'marketing.expertise.emergency')}</span>
 			</a>
 		</div>
 	</div>

@@ -1,23 +1,40 @@
+<script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- hrefs use pathWithLang for ?lang= */
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefRegister = $derived(`${base}${pathWithLang('/register', sp, loc)}`);
+	const hrefRegisterPlumber = $derived(`${base}${pathWithLang('/register/plumber', sp, loc)}`);
+</script>
+
 <section class="final lp-section">
 	<div class="lp-wrap final__grid">
 		<div class="final__card final__card--primary">
 			<div class="final__glow final__glow--tr" aria-hidden="true"></div>
 			<div class="final__content">
-				<h2 class="final__title">Need help now?</h2>
+				<h2 class="final__title">{translate(loc, 'marketing.finalCta.needHelpTitle')}</h2>
 				<p class="final__text">
-					Get matched with a verified professional in seconds and fix your plumbing issues today.
+					{translate(loc, 'marketing.finalCta.needHelpText')}
 				</p>
-				<a class="lp-btn lp-btn--inverse" href="/register">Book a plumber</a>
+				<a class="lp-btn lp-btn--inverse" href={hrefRegister}
+					>{translate(loc, 'marketing.finalCta.needHelpCta')}</a
+				>
 			</div>
 		</div>
 		<div class="final__card final__card--mint">
 			<div class="final__glow final__glow--bl" aria-hidden="true"></div>
 			<div class="final__content">
-				<h2 class="final__title final__title--dark">Are you a plumber?</h2>
+				<h2 class="final__title final__title--dark">{translate(loc, 'marketing.finalCta.plumberTitle')}</h2>
 				<p class="final__text final__text--dark">
-					Join Tbilisi's most professional network and grow your local business faster than ever.
+					{translate(loc, 'marketing.finalCta.plumberText')}
 				</p>
-				<a class="lp-btn lp-btn--on-dark" href="/register/plumber">Join Fixavon</a>
+				<a class="lp-btn lp-btn--on-dark" href={hrefRegisterPlumber}
+					>{translate(loc, 'marketing.finalCta.plumberCta')}</a
+				>
 			</div>
 		</div>
 	</div>

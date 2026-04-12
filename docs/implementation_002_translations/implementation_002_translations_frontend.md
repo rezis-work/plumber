@@ -116,6 +116,29 @@ The phases below are **library-agnostic**; map each step to your chosen stack.
 
 - Disable JavaScript in the browser; default-locale landing still shows correct language for above-the-fold text.
 
+### Implementation (web) — done
+
+**Locale and copy**
+
+- [`apps/web/src/routes/+layout.server.ts`](../../apps/web/src/routes/+layout.server.ts) supplies `locale`; [`apps/web/src/hooks.server.ts`](../../apps/web/src/hooks.server.ts) normalizes `?lang=` and sets `<html lang="…">` via `%lang%` in [`apps/web/src/app.html`](../../apps/web/src/app.html).
+- Landing: [`apps/web/src/routes/(guest)/+page.svelte`](../../apps/web/src/routes/(guest)/+page.svelte) passes translated hero headline; [`apps/web/src/lib/marketing/LandingHero.svelte`](../../apps/web/src/lib/marketing/LandingHero.svelte) renders **H1**, hero **lead**, badge, and CTAs with [`translate`](../../apps/web/src/lib/i18n/translate.ts).
+- Nav / footer: [`LandingNav.svelte`](../../apps/web/src/lib/marketing/LandingNav.svelte), [`LandingFooter.svelte`](../../apps/web/src/lib/marketing/LandingFooter.svelte) use the same `translate` + `page.data.locale` pattern (no `browser` / `onMount` for that copy).
+
+**SSR enabled for guest (marketing + auth pages)**
+
+- `(guest)` routes **must not** set `export const ssr = false` on the layout; that forced CSR-only HTML (empty body until JS), which failed T4. The guest group no longer ships a `+layout.ts` that disables SSR, so SSR is the default for marketing and auth pages under `(guest)/`.
+
+**Production build serves SSR HTML**
+
+- [`apps/web/svelte.config.js`](../../apps/web/svelte.config.js) uses **`@sveltejs/adapter-node`** so `pnpm build` emits a Node server. Run **`pnpm start`** (or `PORT=3000 node build/index.js`) — not `vite preview` alone — to verify **production** SSR locally. `vite preview` is still useful for static asset checks but does not run the Node adapter.
+
+### T4 verification checklist
+
+1. **Build and run Node server:** from `apps/web`, `pnpm build` then `pnpm start` (set `PORT` if needed).
+2. **Fetch HTML without JS:** `curl -sL "http://127.0.0.1:<PORT>/?lang=ka"` (or follow redirect from `/` → `/?lang=ka`). Response should be **tens of kB**, not ~1 kB empty shell.
+3. **Spot-check strings in the HTML body** (default locale is `ka`): hero **H1** / **lead** (Georgian), a **nav** label (e.g. `marketing.nav.benefits`), a **footer** line (e.g. tagline).
+4. **Browser:** disable JavaScript, open `/?lang=ka` (after redirect); above-the-fold marketing copy should match the active locale and must **not** be replaced by only the guest gate “Loading…” string for anonymous users.
+
 ---
 
 ## Phase T5 — Per-locale `<title>` and meta description
@@ -134,6 +157,35 @@ The phases below are **library-agnostic**; map each step to your chosen stack.
 ### Step T5.3 — Acceptance
 
 - **Rich sharing debugger** (or equivalent) shows correct language for at least one URL per locale.
+
+### T5 implementation (done)
+
+**Shared head component**
+
+- [`apps/web/src/lib/seo/SeoHead.svelte`](../../apps/web/src/lib/seo/SeoHead.svelte) — `<title>`, `meta name="description"`, `og:title`, `og:description`, `og:url` (from `page.url.href`), `og:type` (`website`), `og:locale`, two `og:locale:alternate`, `twitter:card` (`summary`), `twitter:title`, `twitter:description`.
+- [`apps/web/src/lib/seo/ogLocale.ts`](../../apps/web/src/lib/seo/ogLocale.ts) — maps app locale → OGP tag: `en` → `en_US`, `ka` → `ka_GE`, `ru` → `ru_RU`; alternates are the other two.
+
+**Copy (message keys)**
+
+- Landing: `marketing.landing.title` / `marketing.landing.description` in [`en.json`](../../apps/web/src/lib/i18n/messages/en.json), [`ka.json`](../../apps/web/src/lib/i18n/messages/ka.json), [`ru.json`](../../apps/web/src/lib/i18n/messages/ru.json) (descriptions expanded toward SEO length).
+- Guest auth / error: `auth.login.metaDescription`, `auth.register.client.metaDescription`, `auth.register.plumber.metaDescription`, `auth.verify.metaDescription`, `error.forbidden.metaDescription`.
+- Profiles (all roles): `auth.account.profilePageTitle`, `auth.account.profileMetaDescription`.
+
+**Pages using `SeoHead`**
+
+- Marketing: [`(guest)/+page.svelte`](../../apps/web/src/routes/(guest)/+page.svelte) (font `<link>` kept in a separate `<svelte:head>`).
+- Auth: [`login`](../../apps/web/src/routes/(guest)/login/+page.svelte), [`register`](../../apps/web/src/routes/(guest)/register/+page.svelte), [`register/plumber`](../../apps/web/src/routes/(guest)/register/plumber/+page.svelte), [`verify-email`](../../apps/web/src/routes/(guest)/verify-email/+page.svelte).
+- [`forbidden/+page.svelte`](../../apps/web/src/routes/forbidden/+page.svelte).
+- Protected profiles: [`client/profile`](../../apps/web/src/routes/(protected)/client/profile/+page.svelte), [`plumber/profile`](../../apps/web/src/routes/(protected)/plumber/profile/+page.svelte), [`admin/profile`](../../apps/web/src/routes/(protected)/admin/profile/+page.svelte).
+
+**Not in this phase:** `og:image` / `twitter:image` (needs a stable public image URL; optional `PUBLIC_SITE_URL` or CDN). **Note:** `(protected)` uses `ssr = false`; crawlers that do not run JS may not see profile meta tags in initial HTML — guest/marketing URLs are the primary targets for sharing-debugger checks.
+
+### T5 verification checklist
+
+1. Deploy or run production Node server ([T4](#phase-t4--guest-ssr-html-body-for-seo--sharing-previews) — `pnpm build` / `pnpm start` from `apps/web`).
+2. For each locale, open or `curl` a **guest** URL with `?lang=` (e.g. `/`, `/login?lang=en`, `/register?lang=ru`) and confirm in HTML: `<title>`, `meta name="description"`, `og:locale`, and two `og:locale:alternate` values.
+3. **[Meta Sharing Debugger](https://developers.facebook.com/tools/debug/)** (or current Meta tool): paste one HTTPS URL per locale; confirm title/description/locale match the page language.
+4. **Twitter/X card preview** (e.g. [Card Validator](https://cards-dev.twitter.com/validator) or the tool X documents at validation time): same spot-check per locale if the product relies on X previews.
 
 ---
 
@@ -161,6 +213,41 @@ The phases below are **library-agnostic**; map each step to your chosen stack.
 ### Step T6.4 — Acceptance
 
 - Automated or manual checklist: every template in the **indexable** set has alternates + canonical + `lang`.
+
+### T6 implementation (done)
+
+**Public origin**
+
+- Optional **`PUBLIC_SITE_URL`** (HTTPS, no trailing slash) in [`apps/web/.env.example`](../../apps/web/.env.example) — production should set it when the app is behind a reverse proxy so absolute URLs match the public host.
+- [`apps/web/src/routes/+layout.server.ts`](../../apps/web/src/routes/+layout.server.ts) exposes **`siteOrigin`**: trimmed `PUBLIC_SITE_URL` or fallback `url.origin`. Declared on [`App.LayoutData`](../../apps/web/src/app.d.ts).
+
+**Canonical and `hreflang`**
+
+- [`apps/web/src/lib/seo/localeHeadLinks.ts`](../../apps/web/src/lib/seo/localeHeadLinks.ts) builds **self-referential** `canonicalHref` and four alternates (`en`, `ka`, `ru`, `x-default`) using [`searchParamsWithLangFirst`](../../apps/web/src/lib/i18n/url.ts) so **`lang` is always first**, then other query keys.
+- **`x-default`** targets the URL with [`DEFAULT_LOCALE`](../../apps/web/src/lib/i18n/config.ts) (`ka`).
+
+**`<head>` emission**
+
+- [`apps/web/src/lib/seo/SeoHead.svelte`](../../apps/web/src/lib/seo/SeoHead.svelte) takes `siteOrigin` + `url` (`page.url`), emits `<link rel="canonical">`, each `link rel="alternate"`, and sets **`og:url`** to the same string as canonical (not the raw request URL).
+
+**Pages**
+
+- Same surfaces as [T5](#t5-implementation-done): landing, guest auth, forbidden, profile routes — each passes `siteOrigin` from layout `data`.
+
+**`<html lang>` (T6.3)**
+
+- Unchanged: [`apps/web/src/hooks.server.ts`](../../apps/web/src/hooks.server.ts) + [`apps/web/src/app.html`](../../apps/web/src/app.html) `%lang%` use `en` / `ka` / `ru`, aligned with `hreflang` values.
+
+**Tests**
+
+- [`apps/web/src/lib/seo/localeHeadLinks.spec.ts`](../../apps/web/src/lib/seo/localeHeadLinks.spec.ts).
+
+### T6 verification checklist
+
+1. Set **`PUBLIC_SITE_URL`** to your public HTTPS origin in production (or omit locally and confirm links use `http://127.0.0.1:PORT` / dev origin).
+2. `curl -sL` a guest URL with `?lang=en` (after any redirect): response should include one `<link rel="canonical">`, four `<link rel="alternate"` (`en`, `ka`, `ru`, `x-default`), and `<html lang="en">`.
+3. Repeat for `?lang=ka` and `?lang=ru` — canonical should follow the active locale; alternates should list all three locales + `x-default` pointing at `?lang=ka`.
+4. With an extra query key (e.g. `/login?verified=1&lang=en`), confirm **`lang` precedes** other parameters in canonical and alternates.
 
 ---
 

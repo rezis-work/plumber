@@ -1,23 +1,40 @@
+<script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- hrefs use pathWithLang for ?lang= */
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+
+	/** SSR-visible main headline (locale from root layout). */
+	let { headline }: { headline: string } = $props();
+
+	const HERO_TRUST_COUNT = 2000;
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefRegister = $derived(`${base}${pathWithLang('/register', sp, loc)}`);
+	const hrefRegisterPlumber = $derived(`${base}${pathWithLang('/register/plumber', sp, loc)}`);
+</script>
+
 <section class="hero lp-section">
 	<div class="lp-wrap hero__grid">
 		<div class="hero__copy">
 			<div class="hero__badge">
 				<span class="material-symbols-outlined hero__badge-icon">verified</span>
-				Trusted by 2,000+ Tbilisi Households
+				{translate(loc, 'marketing.hero.badge', { count: HERO_TRUST_COUNT })}
 			</div>
-			<h1 class="lp-heading-xl">
-				Fast, <span class="hero__accent">Trusted Plumbers</span> in Tbilisi
-			</h1>
+			<h1 class="lp-heading-xl"><span class="hero__accent">{headline}</span></h1>
 			<p class="hero__lead lp-text-muted">
-				Book verified plumbers for urgent repairs, installations, and home plumbing services — all in one
-				place. Professional care for your home is just a few clicks away.
+				{translate(loc, 'marketing.hero.lead')}
 			</p>
 			<div class="hero__ctas">
-				<a class="lp-btn lp-btn--primary" href="/register">
-					Book a Plumber
+				<a class="lp-btn lp-btn--primary" href={hrefRegister}>
+					{translate(loc, 'marketing.hero.ctaBook')}
 					<span class="material-symbols-outlined">arrow_forward</span>
 				</a>
-				<a class="lp-btn lp-btn--outline" href="/register/plumber">Become a Partner</a>
+				<a class="lp-btn lp-btn--outline" href={hrefRegisterPlumber}
+					>{translate(loc, 'marketing.hero.ctaPartner')}</a
+				>
 			</div>
 		</div>
 		<div class="hero__visual">
@@ -27,50 +44,53 @@
 					<div class="hero__card">
 						<div class="hero__card-head">
 							<span class="material-symbols-outlined hero__icon">location_on</span>
-							<span class="hero__tag">Live Map</span>
+							<span class="hero__tag">{translate(loc, 'marketing.hero.liveMap')}</span>
 						</div>
 						<div class="hero__map-wrap">
 							<img
 								class="hero__map-img"
 								src="/marketing/hero-map.png"
-								alt="Map of Tbilisi showing plumbing service areas"
+								alt={translate(loc, 'marketing.hero.mapAlt')}
 								width="400"
 								height="200"
 							/>
 						</div>
 					</div>
 					<div class="hero__card">
-						<h4 class="hero__card-title">Recent Booking</h4>
+						<h4 class="hero__card-title">{translate(loc, 'marketing.hero.recentBooking')}</h4>
 						<div class="hero__booking">
 							<div class="hero__avatar-mini">
 								<span class="material-symbols-outlined">plumbing</span>
 							</div>
 							<div>
-								<p class="hero__booking-title">Pipe Leak Repair</p>
-								<p class="hero__booking-meta">Saburtalo · 14 mins ago</p>
+								<p class="hero__booking-title">{translate(loc, 'marketing.hero.bookingTitle')}</p>
+								<p class="hero__booking-meta">{translate(loc, 'marketing.hero.bookingMeta')}</p>
 							</div>
 						</div>
 					</div>
 				</div>
 				<div class="hero__col hero__col--offset">
 					<div class="hero__card hero__card--primary">
-						<h4 class="hero__flow-title">Service Flow</h4>
+						<h4 class="hero__flow-title">{translate(loc, 'marketing.hero.serviceFlow')}</h4>
 						<ol class="hero__flow">
 							<li class="hero__flow-step hero__flow-step--muted">
-								<span class="hero__step-num">1</span> Select Service
+								<span class="hero__step-num">1</span>
+								{translate(loc, 'marketing.hero.flowStep1')}
 							</li>
 							<li class="hero__flow-step hero__flow-step--active">
-								<span class="hero__step-num hero__step-num--solid">2</span> Pick Plumber
+								<span class="hero__step-num hero__step-num--solid">2</span>
+								{translate(loc, 'marketing.hero.flowStep2')}
 							</li>
 							<li class="hero__flow-step hero__flow-step--muted">
-								<span class="hero__step-num">3</span> Job Start
+								<span class="hero__step-num">3</span>
+								{translate(loc, 'marketing.hero.flowStep3')}
 							</li>
 						</ol>
 					</div>
 					<img
 						class="hero__app-shot"
 						src="/marketing/hero-app-ui.png"
-						alt="App interface listing verified plumbers with ratings"
+						alt={translate(loc, 'marketing.hero.appShotAlt')}
 						width="400"
 						height="280"
 					/>

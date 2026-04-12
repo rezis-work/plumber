@@ -1,16 +1,22 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { translate } from '$lib/i18n/translate';
+
+	const loc = $derived(page.data.locale);
+</script>
+
 <section class="t lp-section">
 	<div class="lp-wrap">
-		<h2 class="t__title lp-heading-lg">Trusted by the Community</h2>
+		<h2 class="t__title lp-heading-lg">{translate(loc, 'marketing.testimonials.title')}</h2>
 		<div class="t__grid">
 			<article class="t__card">
-				<div class="t__stars" aria-label="5 stars">
+				<div class="t__stars" aria-label={translate(loc, 'marketing.testimonials.starsLabel')}>
 					{#each [1, 2, 3, 4, 5] as _}
 						<span class="material-symbols-outlined t__star">star</span>
 					{/each}
 				</div>
 				<p class="t__quote lp-text-muted">
-					"Excellent service! The plumber arrived in Vake within 20 minutes for an emergency leak.
-					Professional and very clean work."
+					{translate(loc, 'marketing.testimonials.q1')}
 				</p>
 				<div class="t__person">
 					<img
@@ -21,20 +27,19 @@
 						height="48"
 					/>
 					<div>
-						<p class="t__name">Lali G.</p>
-						<p class="t__role lp-text-muted">Vake Resident</p>
+						<p class="t__name">{translate(loc, 'marketing.testimonials.n1')}</p>
+						<p class="t__role lp-text-muted">{translate(loc, 'marketing.testimonials.r1')}</p>
 					</div>
 				</div>
 			</article>
 			<article class="t__card">
-				<div class="t__stars" aria-label="5 stars">
+				<div class="t__stars" aria-label={translate(loc, 'marketing.testimonials.starsLabel')}>
 					{#each [1, 2, 3, 4, 5] as _}
 						<span class="material-symbols-outlined t__star">star</span>
 					{/each}
 				</div>
 				<p class="t__quote lp-text-muted">
-					"Fixavon helped me scale my business. I no longer spend money on ads—the requests just come in
-					through the platform."
+					{translate(loc, 'marketing.testimonials.q2')}
 				</p>
 				<div class="t__person">
 					<img
@@ -45,20 +50,19 @@
 						height="48"
 					/>
 					<div>
-						<p class="t__name">Giorgi K.</p>
-						<p class="t__role lp-text-muted">Master Plumber</p>
+						<p class="t__name">{translate(loc, 'marketing.testimonials.n2')}</p>
+						<p class="t__role lp-text-muted">{translate(loc, 'marketing.testimonials.r2')}</p>
 					</div>
 				</div>
 			</article>
 			<article class="t__card">
-				<div class="t__stars" aria-label="5 stars">
+				<div class="t__stars" aria-label={translate(loc, 'marketing.testimonials.starsLabel')}>
 					{#each [1, 2, 3, 4, 5] as _}
 						<span class="material-symbols-outlined t__star">star</span>
 					{/each}
 				</div>
 				<p class="t__quote lp-text-muted">
-					"Very transparent. I knew exactly how much the boiler installation would cost before the guy even
-					showed up. Highly recommend."
+					{translate(loc, 'marketing.testimonials.q3')}
 				</p>
 				<div class="t__person">
 					<img
@@ -69,8 +73,8 @@
 						height="48"
 					/>
 					<div>
-						<p class="t__name">Nika M.</p>
-						<p class="t__role lp-text-muted">Saburtalo Resident</p>
+						<p class="t__name">{translate(loc, 'marketing.testimonials.n3')}</p>
+						<p class="t__role lp-text-muted">{translate(loc, 'marketing.testimonials.r3')}</p>
 					</div>
 				</div>
 			</article>

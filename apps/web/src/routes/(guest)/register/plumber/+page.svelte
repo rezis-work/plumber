@@ -1,6 +1,19 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- links use pathWithLang for ?lang= */
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { ApiError, authRegisterPlumber } from '$lib/api/client';
+	import { translateAuthApiError } from '$lib/auth/translateApiError';
+	import {
+		translateEmailValidation,
+		translateFullNameError,
+		translatePasswordValidation,
+		translatePhoneError,
+		translateYearsError
+	} from '$lib/auth/validationMessages';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+	import SeoHead from '$lib/seo/SeoHead.svelte';
 	import {
 		validateEmailInput,
 		validateFullNameInput,
@@ -20,47 +33,56 @@
 	let submitting = $state(false);
 	let succeeded = $state(false);
 
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefHome = $derived(`${base}${pathWithLang('/', sp, loc)}`);
+	const hrefLogin = $derived(`${base}${pathWithLang('/login', sp, loc)}`);
+	const hrefRegister = $derived(`${base}${pathWithLang('/register', sp, loc)}`);
+
+	const pageTitle = $derived(translate(loc, 'auth.register.plumber.title'));
+	const pageDescription = $derived(translate(loc, 'auth.register.plumber.metaDescription'));
+
 	async function onsubmit(e: Event) {
 		e.preventDefault();
 		clientError = null;
 
-		const nameErr = validateFullNameInput(fullName);
+		const nameErr = translateFullNameError(loc, validateFullNameInput(fullName));
 		if (nameErr) {
 			clientError = nameErr;
 			return;
 		}
 
-		const emailResult = validateEmailInput(email);
+		const emailResult = translateEmailValidation(loc, validateEmailInput(email));
 		if (!emailResult.ok) {
 			clientError = emailResult.message;
 			return;
 		}
 
-		const phoneErr = validatePhoneInput(phone);
+		const phoneErr = translatePhoneError(loc, validatePhoneInput(phone));
 		if (phoneErr) {
 			clientError = phoneErr;
 			return;
 		}
 
-		const yearsErr = validateYearsOfExperienceInput(yearsExperience);
+		const yearsErr = translateYearsError(loc, validateYearsOfExperienceInput(yearsExperience));
 		if (yearsErr) {
 			clientError = yearsErr;
 			return;
 		}
 
-		const pwErr = validatePasswordInput(password);
+		const pwErr = translatePasswordValidation(loc, validatePasswordInput(password));
 		if (pwErr) {
 			clientError = pwErr;
 			return;
 		}
 
 		if (password !== confirmPassword) {
-			clientError = 'Passwords do not match.';
+			clientError = translate(loc, 'auth.validation.passwordMismatch');
 			return;
 		}
 
 		if (!termsAccepted) {
-			clientError = 'Please accept the terms to continue.';
+			clientError = translate(loc, 'auth.validation.termsRequired');
 			return;
 		}
 
@@ -76,15 +98,9 @@
 			succeeded = true;
 		} catch (err) {
 			if (err instanceof ApiError) {
-				if (err.status === 409 && err.code === 'conflict') {
-					clientError = 'An account with this email already exists.';
-				} else if (err.status === 400 && err.code === 'validation_error') {
-					clientError = err.message ?? 'Please check your input and try again.';
-				} else {
-					clientError = 'Something went wrong. Please try again.';
-				}
+				clientError = translateAuthApiError(loc, err);
 			} else {
-				clientError = 'Network error. Check your connection and try again.';
+				clientError = translate(loc, 'auth.api.network');
 			}
 		} finally {
 			submitting = false;
@@ -92,8 +108,15 @@
 	}
 </script>
 
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	locale={loc}
+	url={page.url}
+	siteOrigin={page.data.siteOrigin}
+/>
+
 <svelte:head>
-	<title>Become a plumber | Fixavon</title>
 	<link
 		rel="stylesheet"
 		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
@@ -113,18 +136,18 @@
 			<div class="hero__overlay"></div>
 		</div>
 		<div class="hero__content">
-			<a class="hero__logo" href="{base}/">Fixavon</a>
+			<a class="hero__logo" href={hrefHome}>{translate(loc, 'auth.shared.brand')}</a>
 			<div class="hero__copy">
-				<p class="hero__eyebrow">Professional network</p>
-				<h1 id="hero-heading" class="hero__title">Grow your business with Fixavon</h1>
+				<p class="hero__eyebrow">{translate(loc, 'auth.register.plumber.eyebrow')}</p>
+				<h1 id="hero-heading" class="hero__title">{translate(loc, 'auth.register.plumber.heroTitle')}</h1>
 				<ul class="hero__list">
 					<li class="hero__item">
 						<div class="hero__icon">
 							<span class="material-symbols-outlined">trending_up</span>
 						</div>
 						<div>
-							<p class="hero__item-title">Get more customer requests</p>
-							<p class="hero__item-meta">Verified leads across Tbilisi.</p>
+							<p class="hero__item-title">{translate(loc, 'auth.register.plumber.item1Title')}</p>
+							<p class="hero__item-meta">{translate(loc, 'auth.register.plumber.item1Meta')}</p>
 						</div>
 					</li>
 					<li class="hero__item">
@@ -132,8 +155,8 @@
 							<span class="material-symbols-outlined">dashboard_customize</span>
 						</div>
 						<div>
-							<p class="hero__item-title">Manage work efficiently</p>
-							<p class="hero__item-meta">Scheduling and invoicing in one place.</p>
+							<p class="hero__item-title">{translate(loc, 'auth.register.plumber.item2Title')}</p>
+							<p class="hero__item-meta">{translate(loc, 'auth.register.plumber.item2Meta')}</p>
 						</div>
 					</li>
 					<li class="hero__item">
@@ -141,8 +164,8 @@
 							<span class="material-symbols-outlined hero__icon--fill">verified_user</span>
 						</div>
 						<div>
-							<p class="hero__item-title">Build ratings and trust</p>
-							<p class="hero__item-meta">Reviews and credentials that stand out.</p>
+							<p class="hero__item-title">{translate(loc, 'auth.register.plumber.item3Title')}</p>
+							<p class="hero__item-meta">{translate(loc, 'auth.register.plumber.item3Meta')}</p>
 						</div>
 					</li>
 					<li class="hero__item">
@@ -150,12 +173,12 @@
 							<span class="material-symbols-outlined">payments</span>
 						</div>
 						<div>
-							<p class="hero__item-title">Grow your income</p>
-							<p class="hero__item-meta">Set your rates and take priority calls.</p>
+							<p class="hero__item-title">{translate(loc, 'auth.register.plumber.item4Title')}</p>
+							<p class="hero__item-meta">{translate(loc, 'auth.register.plumber.item4Meta')}</p>
 						</div>
 					</li>
 				</ul>
-				<p class="hero__social">Join 200+ top plumbers in Tbilisi</p>
+				<p class="hero__social">{translate(loc, 'auth.register.plumber.socialLine')}</p>
 			</div>
 		</div>
 	</section>
@@ -167,24 +190,28 @@
 					<div class="success-card__icon" aria-hidden="true">
 						<span class="material-symbols-outlined">check_circle</span>
 					</div>
-					<h2 id="register-heading" class="success-card__title">You&apos;re registered</h2>
+					<h2 id="register-heading" class="success-card__title"
+						>{translate(loc, 'auth.register.plumber.successTitle')}</h2
+					>
 					<p class="success-card__text">
-						Your plumber account is ready. Log in to start receiving jobs on Fixavon.
+						{translate(loc, 'auth.register.plumber.successText')}
 					</p>
 					<div class="success-card__actions">
-						<a class="btn-primary" href="{base}/login">Log in</a>
-						<a class="btn-muted" href="{base}/">Back to home</a>
+						<a class="btn-primary" href={hrefLogin}>{translate(loc, 'auth.shared.logIn')}</a>
+						<a class="btn-muted" href={hrefHome}>{translate(loc, 'auth.register.plumber.backHome')}</a>
 					</div>
 					<p class="success-card__hint">
-						Looking for a household account?
-						<a href="{base}/register">Client sign up</a>
+						{translate(loc, 'auth.register.plumber.successHint')}
+						<a href={hrefRegister}>{translate(loc, 'auth.register.plumber.clientSignUp')}</a>
 					</p>
 				</div>
 			{:else}
 				<div class="panel__header">
-					<h2 id="register-heading" class="panel__title">Join as a plumber</h2>
+					<h2 id="register-heading" class="panel__title"
+						>{translate(loc, 'auth.register.plumber.panelTitle')}</h2
+					>
 					<p class="panel__subtitle">
-						Connect with customers who need reliable plumbing in Tbilisi.
+						{translate(loc, 'auth.register.plumber.panelSubtitle')}
 					</p>
 				</div>
 
@@ -195,14 +222,16 @@
 						{/if}
 
 						<div class="field">
-							<label class="field__label" for="plumb-name">Full name</label>
+							<label class="field__label" for="plumb-name"
+								>{translate(loc, 'auth.register.plumber.fullName')}</label
+							>
 							<input
 								id="plumb-name"
 								class="field__input field__input--plain"
 								type="text"
 								name="full_name"
 								autocomplete="name"
-								placeholder="Gigi Beridze"
+								placeholder={translate(loc, 'auth.register.plumber.namePlaceholder')}
 								bind:value={fullName}
 								disabled={submitting}
 								required
@@ -211,7 +240,9 @@
 
 						<div class="field-grid">
 							<div class="field">
-								<label class="field__label" for="plumb-email">Email</label>
+								<label class="field__label" for="plumb-email"
+									>{translate(loc, 'auth.shared.email')}</label
+								>
 								<div class="field__input-wrap">
 									<span class="material-symbols-outlined field__icon">mail</span>
 									<input
@@ -220,7 +251,7 @@
 										type="email"
 										name="email"
 										autocomplete="email"
-										placeholder="you@example.com"
+										placeholder={translate(loc, 'auth.login.emailPlaceholder')}
 										bind:value={email}
 										disabled={submitting}
 										required
@@ -228,7 +259,9 @@
 								</div>
 							</div>
 							<div class="field">
-								<label class="field__label" for="plumb-phone">Phone</label>
+								<label class="field__label" for="plumb-phone"
+									>{translate(loc, 'auth.register.plumber.phone')}</label
+								>
 								<div class="field__input-wrap">
 									<span class="material-symbols-outlined field__icon">call</span>
 									<input
@@ -237,7 +270,7 @@
 										type="tel"
 										name="phone"
 										autocomplete="tel"
-										placeholder="+995 555 123 456"
+										placeholder={translate(loc, 'auth.register.plumber.phonePlaceholder')}
 										bind:value={phone}
 										disabled={submitting}
 										required
@@ -247,7 +280,9 @@
 						</div>
 
 						<div class="field">
-							<label class="field__label" for="plumb-years">Years of experience</label>
+							<label class="field__label" for="plumb-years"
+								>{translate(loc, 'auth.register.plumber.yearsExperience')}</label
+							>
 							<input
 								id="plumb-years"
 								class="field__input field__input--plain"
@@ -262,13 +297,15 @@
 							/>
 							<p class="field__hint">
 								<span class="material-symbols-outlined field__hint-icon">info</span>
-								Whole years, 0–80.
+								{translate(loc, 'auth.register.plumber.yearsHint')}
 							</p>
 						</div>
 
 						<div class="field-grid">
 							<div class="field">
-								<label class="field__label" for="plumb-password">Password</label>
+								<label class="field__label" for="plumb-password"
+									>{translate(loc, 'auth.shared.password')}</label
+								>
 								<div class="field__input-wrap">
 									<span class="material-symbols-outlined field__icon">lock</span>
 									<input
@@ -277,7 +314,7 @@
 										type="password"
 										name="password"
 										autocomplete="new-password"
-										placeholder="••••••••"
+										placeholder={translate(loc, 'auth.login.passwordPlaceholder')}
 										bind:value={password}
 										disabled={submitting}
 										required
@@ -285,7 +322,9 @@
 								</div>
 							</div>
 							<div class="field">
-								<label class="field__label" for="plumb-confirm">Confirm password</label>
+								<label class="field__label" for="plumb-confirm"
+									>{translate(loc, 'auth.register.plumber.confirmPassword')}</label
+								>
 								<div class="field__input-wrap">
 									<span class="material-symbols-outlined field__icon">shield</span>
 									<input
@@ -294,7 +333,7 @@
 										type="password"
 										name="confirm_password"
 										autocomplete="new-password"
-										placeholder="••••••••"
+										placeholder={translate(loc, 'auth.login.passwordPlaceholder')}
 										bind:value={confirmPassword}
 										disabled={submitting}
 										required
@@ -311,14 +350,19 @@
 								disabled={submitting}
 							/>
 							<span class="terms__text">
-								I agree to the <a href="{base}/">Terms of Service</a> and
-								<a href="{base}/">Privacy Policy</a>.
+								{translate(loc, 'auth.register.plumber.termsAgree')}
+								<a href={hrefHome}>{translate(loc, 'auth.shared.termsOfService')}</a>
+								{translate(loc, 'auth.register.plumber.termsAnd')}
+								<a href={hrefHome}>{translate(loc, 'auth.shared.privacyPolicy')}</a
+								>{translate(loc, 'auth.register.plumber.termsEnd')}
 							</span>
 						</label>
 
 						<div class="form__actions">
 							<button class="btn-submit" type="submit" disabled={submitting}>
-								{submitting ? 'Creating account…' : 'Create plumber account'}
+								{submitting
+									? translate(loc, 'auth.register.plumber.creating')
+									: translate(loc, 'auth.register.plumber.submit')}
 							</button>
 						</div>
 					</form>
@@ -326,20 +370,20 @@
 
 				<div class="panel__footer">
 					<p class="panel__login">
-						Already have an account?
-						<a href="{base}/login">Log in</a>
+						{translate(loc, 'auth.register.plumber.alreadyHave')}
+						<a href={hrefLogin}>{translate(loc, 'auth.shared.logIn')}</a>
 					</p>
 					<hr class="panel__rule" />
-					<a class="btn-client" href="{base}/register">
+					<a class="btn-client" href={hrefRegister}>
 						<span class="material-symbols-outlined">person_add</span>
-						Sign up as a client instead
+						{translate(loc, 'auth.register.plumber.signUpClient')}
 					</a>
 				</div>
 
 				<div class="legal">
-					<a href="{base}/">Terms of Service</a>
-					<a href="{base}/">Privacy Policy</a>
-					<a href="{base}/">Contact Support</a>
+					<a href={hrefHome}>{translate(loc, 'auth.shared.termsOfService')}</a>
+					<a href={hrefHome}>{translate(loc, 'auth.shared.privacyPolicy')}</a>
+					<a href={hrefHome}>{translate(loc, 'auth.shared.contactSupport')}</a>
 				</div>
 			{/if}
 		</div>

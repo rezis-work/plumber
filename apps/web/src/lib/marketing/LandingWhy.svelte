@@ -1,10 +1,18 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { translate } from '$lib/i18n/translate';
+
+	const loc = $derived(page.data.locale);
+	const VERIFIED_PLUMBER_COUNT = 150;
+</script>
+
 <section class="why lp-section" id="benefits">
 	<div class="lp-wrap">
 		<div class="why__head">
 			<div>
-				<h2 class="lp-heading-lg">Why Choose Fixavon</h2>
+				<h2 class="lp-heading-lg">{translate(loc, 'marketing.why.title')}</h2>
 				<p class="why__sub lp-text-muted">
-					We're redefining plumbing services in Tbilisi with a focus on trust and transparency.
+					{translate(loc, 'marketing.why.subtitle')}
 				</p>
 			</div>
 			<div class="why__pill">
@@ -14,52 +22,54 @@
 					<span class="why__dot why__dot--t"></span>
 				</div>
 				<div>
-					<p class="why__pill-title">Trusted Experts</p>
-					<p class="why__pill-meta lp-text-muted">Over 150+ Verified Plumbers</p>
+					<p class="why__pill-title">{translate(loc, 'marketing.why.pillTitle')}</p>
+					<p class="why__pill-meta lp-text-muted">
+						{translate(loc, 'marketing.why.pillMeta', { count: VERIFIED_PLUMBER_COUNT })}
+					</p>
 				</div>
 			</div>
 		</div>
 		<div class="why__grid">
 			<div class="why__card">
 				<span class="material-symbols-outlined why__card-icon">verified_user</span>
-				<h3 class="why__card-title">Verified plumbers</h3>
+				<h3 class="why__card-title">{translate(loc, 'marketing.why.c1Title')}</h3>
 				<p class="why__card-text lp-text-muted">
-					Every professional undergoes a strict background check and skill verification process.
+					{translate(loc, 'marketing.why.c1Text')}
 				</p>
 			</div>
 			<div class="why__card">
 				<span class="material-symbols-outlined why__card-icon">bolt</span>
-				<h3 class="why__card-title">Fast response</h3>
+				<h3 class="why__card-title">{translate(loc, 'marketing.why.c2Title')}</h3>
 				<p class="why__card-text lp-text-muted">
-					Emergency plumbing needs can't wait. We average a 30-minute response time in central Tbilisi.
+					{translate(loc, 'marketing.why.c2Text')}
 				</p>
 			</div>
 			<div class="why__card">
 				<span class="material-symbols-outlined why__card-icon">payments</span>
-				<h3 class="why__card-title">Transparent pricing</h3>
+				<h3 class="why__card-title">{translate(loc, 'marketing.why.c3Title')}</h3>
 				<p class="why__card-text lp-text-muted">
-					No hidden fees or "estimates" that double at the end. See fixed prices before you book.
+					{translate(loc, 'marketing.why.c3Text')}
 				</p>
 			</div>
 			<div class="why__card">
 				<span class="material-symbols-outlined why__card-icon">touch_app</span>
-				<h3 class="why__card-title">Easy booking</h3>
+				<h3 class="why__card-title">{translate(loc, 'marketing.why.c4Title')}</h3>
 				<p class="why__card-text lp-text-muted">
-					Our platform is designed for speed. Book your expert in under 60 seconds.
+					{translate(loc, 'marketing.why.c4Text')}
 				</p>
 			</div>
 			<div class="why__card">
 				<span class="material-symbols-outlined why__card-icon">handyman</span>
-				<h3 class="why__card-title">Reliable service</h3>
+				<h3 class="why__card-title">{translate(loc, 'marketing.why.c5Title')}</h3>
 				<p class="why__card-text lp-text-muted">
-					Quality is our priority. We guarantee all work performed through our platform.
+					{translate(loc, 'marketing.why.c5Text')}
 				</p>
 			</div>
 			<div class="why__card">
 				<span class="material-symbols-outlined why__card-icon">map</span>
-				<h3 class="why__card-title">Local coverage</h3>
+				<h3 class="why__card-title">{translate(loc, 'marketing.why.c6Title')}</h3>
 				<p class="why__card-text lp-text-muted">
-					Available in all major districts of Tbilisi, 24 hours a day, 7 days a week.
+					{translate(loc, 'marketing.why.c6Text')}
 				</p>
 			</div>
 		</div>

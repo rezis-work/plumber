@@ -1,29 +1,51 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- links use pathWithLang for ?lang= */
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+	import SeoHead from '$lib/seo/SeoHead.svelte';
 	import { profilePathForRole } from '$lib/auth/profilePaths';
 	import { session } from '$lib/auth/session.svelte';
 
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+
 	const profileHref = $derived(
 		session.user && session.accessToken
-			? `${base}${profilePathForRole(session.user.role)}`
+			? `${base}${pathWithLang(profilePathForRole(session.user.role), sp, loc)}`
 			: null
 	);
+	const hrefLogin = $derived(`${base}${pathWithLang('/login', sp, loc)}`);
+	const hrefHome = $derived(`${base}${pathWithLang('/', sp, loc)}`);
+
+	const pageTitle = $derived(translate(loc, 'error.forbidden.title'));
+	const pageDescription = $derived(translate(loc, 'error.forbidden.metaDescription'));
+	const heading = $derived(translate(loc, 'error.forbidden.heading'));
+	const body = $derived(translate(loc, 'error.forbidden.body'));
+	const goProfile = $derived(translate(loc, 'error.forbidden.goProfile'));
+	const logIn = $derived(translate(loc, 'error.forbidden.logIn'));
+	const home = $derived(translate(loc, 'error.forbidden.home'));
 </script>
 
-<svelte:head>
-	<title>Access denied | Fixavon</title>
-</svelte:head>
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	locale={loc}
+	url={page.url}
+	siteOrigin={page.data.siteOrigin}
+/>
 
 <div class="page">
 	<div class="card">
-		<h1 class="title">Access denied</h1>
-		<p class="body">You don’t have permission to view this page.</p>
+		<h1 class="title">{heading}</h1>
+		<p class="body">{body}</p>
 		<div class="actions">
 			{#if profileHref}
-				<a class="btn btn--primary" href={profileHref}>Go to your profile</a>
+				<a class="btn btn--primary" href={profileHref}>{goProfile}</a>
 			{:else}
-				<a class="btn btn--primary" href={`${base}/login`}>Log in</a>
-				<a class="btn btn--ghost" href={`${base}/`}>Home</a>
+				<a class="btn btn--primary" href={hrefLogin}>{logIn}</a>
+				<a class="btn btn--ghost" href={hrefHome}>{home}</a>
 			{/if}
 		</div>
 	</div>

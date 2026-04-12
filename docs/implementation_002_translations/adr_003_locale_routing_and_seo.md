@@ -39,3 +39,19 @@
 
 - [Google: localized versions / hreflang](https://developers.google.com/search/docs/specialty/international/localized-versions) (verify current URL in your implementation week).
 - Implementation steps: [implementation_002_translations_frontend.md](./implementation_002_translations_frontend.md).
+
+---
+
+## Appendix — Web locale and message defaults (Implementation 002 T0)
+
+**URL resolution:** If `lang` is missing or not in the allowlist, the active locale for SSR is the **default locale** below (see Decision §2). Redirect/canonical policy remains as in Decision §3.
+
+**Message lookup** (missing translation keys) is separate from URL parsing: the resolved page locale is always one of `en` | `ka` | `ru`; fallback only affects which catalog is consulted for a given key.
+
+| Setting | Value |
+|--------|--------|
+| **Supported locales (allowlist)** | `en`, `ka`, `ru` (BCP 47) |
+| **Default locale** | `ka` — used when `lang` is absent or invalid, and for **`hreflang="x-default"`** targets (with `?lang=ka` when using URL normalization per Decision §3). |
+| **Message fallback order** | For **`ka`** and **`ru`**: try **`en`** next if the key is missing in the active locale, then show the **raw key** (or dev-only signal). For **`en`**: show the **raw key** if missing. |
+
+Typed mirrors for app code: [`apps/web/src/lib/i18n/config.ts`](../../apps/web/src/lib/i18n/config.ts).

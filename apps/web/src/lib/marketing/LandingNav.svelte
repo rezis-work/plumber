@@ -1,5 +1,10 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- hrefs use pathWithLang for ?lang= */
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
 	import { logoutEverywhere, logoutFromApp } from '$lib/auth/logout';
 	import { session } from '$lib/auth/session.svelte';
 
@@ -10,6 +15,13 @@
 
 	const isAuthenticated = $derived(session.user !== null && session.accessToken !== null);
 	const canLogoutEverywhere = $derived(session.accessToken !== null);
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefHome = $derived(`${base}${pathWithLang('/', sp, loc)}`);
+	const hrefLogin = $derived(`${base}${pathWithLang('/login', sp, loc)}`);
+	const hrefRegisterPlumber = $derived(`${base}${pathWithLang('/register/plumber', sp, loc)}`);
+	const hrefRegister = $derived(`${base}${pathWithLang('/register', sp, loc)}`);
 
 	const sections = ['benefits', 'services', 'for-plumbers',  'faq'];
 
@@ -93,15 +105,16 @@
 
 <header class="nav lp-glass-nav">
 	<nav class="nav__inner lp-wrap">
-		<a class="nav__logo" href={`${base}/`} onclick={closeMenu}>Fixavon</a>
+		<a class="nav__logo" href={hrefHome} onclick={closeMenu}>{translate(loc, 'auth.shared.brand')}</a>
 		<div class="nav__links">
-			<a class="nav__link" class:nav__link--active={activeSection === 'benefits'} href="#benefits" onclick={() => setActive('benefits')}>Benefits</a>
-			<a class="nav__link" class:nav__link--active={activeSection === 'services'} href="#services" onclick={() => setActive('services')}>Services</a>
-			<a class="nav__link" class:nav__link--active={activeSection === 'for-plumbers'} href="#for-plumbers" onclick={() => setActive('for-plumbers')}>For Plumbers</a>
+			<a class="nav__link" class:nav__link--active={activeSection === 'benefits'} href="#benefits" onclick={() => setActive('benefits')}>{translate(loc, 'marketing.nav.benefits')}</a>
+			<a class="nav__link" class:nav__link--active={activeSection === 'services'} href="#services" onclick={() => setActive('services')}>{translate(loc, 'marketing.nav.services')}</a>
+			<a class="nav__link" class:nav__link--active={activeSection === 'for-plumbers'} href="#for-plumbers" onclick={() => setActive('for-plumbers')}>{translate(loc, 'marketing.nav.forPlumbers')}</a>
 			
-			<a class="nav__link" class:nav__link--active={activeSection === 'faq'} href="#faq" onclick={() => setActive('faq')}>FAQ</a>
+			<a class="nav__link" class:nav__link--active={activeSection === 'faq'} href="#faq" onclick={() => setActive('faq')}>{translate(loc, 'marketing.nav.faq')}</a>
 		</div>
 		<div class="nav__actions">
+			<LocaleSwitcher />
 			{#if isAuthenticated}
 				<span class="nav__user" title={session.user?.email ?? ''}>{session.user?.email ?? ''}</span>
 				<button
@@ -110,7 +123,7 @@
 					disabled={logoutBusy}
 					onclick={onLogout}
 				>
-					Log out
+					{translate(loc, 'marketing.nav.logOut')}
 				</button>
 				{#if canLogoutEverywhere}
 					<button
@@ -119,21 +132,21 @@
 						disabled={logoutBusy}
 						onclick={onLogoutEverywhere}
 					>
-						Log out everywhere
+						{translate(loc, 'marketing.nav.logOutEverywhere')}
 					</button>
 				{/if}
 			{:else}
-				<a class="nav__login" href={`${base}/login`}>Log in</a>
+				<a class="nav__login" href={hrefLogin}>{translate(loc, 'auth.shared.logIn')}</a>
 			{/if}
-			<a class="nav__plumber lg-only" href={`${base}/register/plumber`}>Join as Plumber</a>
-			<a class="lp-btn lp-btn--primary lp-btn--primary-sm" href={`${base}/register`}>Book Now</a>
+			<a class="nav__plumber lg-only" href={hrefRegisterPlumber}>{translate(loc, 'marketing.nav.joinPlumber')}</a>
+			<a class="lp-btn lp-btn--primary lp-btn--primary-sm" href={hrefRegister}>{translate(loc, 'marketing.nav.bookNow')}</a>
 		</div>
 		<button
 			type="button"
 			class="nav__menu-btn md-hide"
 			aria-expanded={menuOpen}
 			aria-controls="nav-mobile-panel"
-			aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+			aria-label={menuOpen ? translate(loc, 'marketing.nav.closeMenu') : translate(loc, 'marketing.nav.openMenu')}
 			onclick={() => (menuOpen = !menuOpen)}
 		>
 			{menuOpen ? '✕' : '☰'}
@@ -141,10 +154,13 @@
 	</nav>
 	{#if menuOpen}
 		<div id="nav-mobile-panel" class="nav__mobile lp-glass-nav md-hide-panel">
-			<a class="nav__mobile-link" href="#services" onclick={closeMenu}>Services</a>
-			<a class="nav__mobile-link" href="#for-plumbers" onclick={closeMenu}>For Plumbers</a>
-			<a class="nav__mobile-link" href="#benefits" onclick={closeMenu}>Benefits</a>
-			<a class="nav__mobile-link" href="#faq" onclick={closeMenu}>FAQ</a>
+			<div class="nav__mobile-locale">
+				<LocaleSwitcher />
+			</div>
+			<a class="nav__mobile-link" href="#services" onclick={closeMenu}>{translate(loc, 'marketing.nav.services')}</a>
+			<a class="nav__mobile-link" href="#for-plumbers" onclick={closeMenu}>{translate(loc, 'marketing.nav.forPlumbers')}</a>
+			<a class="nav__mobile-link" href="#benefits" onclick={closeMenu}>{translate(loc, 'marketing.nav.benefits')}</a>
+			<a class="nav__mobile-link" href="#faq" onclick={closeMenu}>{translate(loc, 'marketing.nav.faq')}</a>
 			{#if isAuthenticated}
 				<p class="nav__mobile-user">{session.user?.email ?? ''}</p>
 				<button
@@ -153,7 +169,7 @@
 					disabled={logoutBusy}
 					onclick={onLogout}
 				>
-					Log out
+					{translate(loc, 'marketing.nav.logOut')}
 				</button>
 				{#if canLogoutEverywhere}
 					<button
@@ -162,15 +178,15 @@
 						disabled={logoutBusy}
 						onclick={onLogoutEverywhere}
 					>
-						Log out everywhere
+						{translate(loc, 'marketing.nav.logOutEverywhere')}
 					</button>
 				{/if}
 			{:else}
-				<a class="nav__mobile-link" href={`${base}/login`} onclick={closeMenu}>Log in</a>
+				<a class="nav__mobile-link" href={hrefLogin} onclick={closeMenu}>{translate(loc, 'auth.shared.logIn')}</a>
 			{/if}
-			<a class="nav__mobile-link" href={`${base}/register/plumber`} onclick={closeMenu}>Join as Plumber</a>
-			<a class="nav__mobile-cta lp-btn lp-btn--primary lp-btn--primary-sm" href={`${base}/register`} onclick={closeMenu}
-				>Book Now</a
+			<a class="nav__mobile-link" href={hrefRegisterPlumber} onclick={closeMenu}>{translate(loc, 'marketing.nav.joinPlumber')}</a>
+			<a class="nav__mobile-cta lp-btn lp-btn--primary lp-btn--primary-sm" href={hrefRegister} onclick={closeMenu}
+				>{translate(loc, 'marketing.nav.bookNow')}</a
 			>
 		</div>
 	{/if}
@@ -357,6 +373,11 @@
 		gap: var(--space-4);
 		padding: var(--space-4) var(--space-6) var(--space-6);
 		border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
+	}
+
+	.nav__mobile-locale {
+		display: flex;
+		justify-content: flex-end;
 	}
 
 	.md-hide-panel {

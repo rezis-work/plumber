@@ -1,35 +1,43 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { translate } from '$lib/i18n/translate';
+
+	const loc = $derived(page.data.locale);
+	const FAQ_COUNT = 3;
+</script>
+
 <section class="faq lp-section" id="faq">
 	<div class="lp-wrap faq__inner">
-		<h2 class="lp-heading-lg faq__title">Frequently Asked Questions</h2>
+		<h2 class="lp-heading-lg faq__title">{translate(loc, 'marketing.faq.title')}</h2>
+		<p class="faq__subtitle lp-text-muted">
+			{translate(loc, 'marketing.faq.subtitle', { count: FAQ_COUNT })}
+		</p>
 		<div class="faq__list">
 			<details class="faq__item" open>
 				<summary class="faq__summary">
-					<span class="faq__q">How quickly can a plumber arrive?</span>
+					<span class="faq__q">{translate(loc, 'marketing.faq.q1')}</span>
 					<span class="material-symbols-outlined faq__icon">expand_more</span>
 				</summary>
 				<div class="faq__a lp-text-muted">
-					In central districts like Vake and Saburtalo, our average arrival time is 30 minutes for emergency
-					calls. In other districts, it typically takes 45-60 minutes.
+					{translate(loc, 'marketing.faq.a1')}
 				</div>
 			</details>
 			<details class="faq__item">
 				<summary class="faq__summary">
-					<span class="faq__q">Are the prices fixed?</span>
+					<span class="faq__q">{translate(loc, 'marketing.faq.q2')}</span>
 					<span class="material-symbols-outlined faq__icon">expand_more</span>
 				</summary>
 				<div class="faq__a lp-text-muted">
-					Yes, for standard services like faucet replacement or minor leaks, we have flat rates. For complex
-					projects, you'll receive a detailed quote before the work begins.
+					{translate(loc, 'marketing.faq.a2')}
 				</div>
 			</details>
 			<details class="faq__item">
 				<summary class="faq__summary">
-					<span class="faq__q">What kind of guarantee do you provide?</span>
+					<span class="faq__q">{translate(loc, 'marketing.faq.q3')}</span>
 					<span class="material-symbols-outlined faq__icon">expand_more</span>
 				</summary>
 				<div class="faq__a lp-text-muted">
-					All work completed through Fixavon is covered by our 6-month satisfaction guarantee. If anything
-					goes wrong with the repair, we'll fix it for free.
+					{translate(loc, 'marketing.faq.a3')}
 				</div>
 			</details>
 		</div>
@@ -43,7 +51,15 @@
 
 	.faq__title {
 		text-align: center;
-		margin-bottom: var(--space-12);
+		margin-bottom: var(--space-4);
+	}
+
+	.faq__subtitle {
+		text-align: center;
+		margin: 0 auto var(--space-12);
+		max-width: 40rem;
+		font-size: var(--text-sm);
+		line-height: 1.5;
 	}
 
 	.faq__list {

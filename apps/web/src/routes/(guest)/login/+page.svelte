@@ -1,12 +1,33 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- links use pathWithLang for ?lang= */
 	import { browser } from '$app/environment';
-	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { ApiError, authLogin } from '$lib/api/client';
 	import { profilePathForRole } from '$lib/auth/profilePaths';
 	import { session, setSessionFromLogin } from '$lib/auth/session.svelte';
+	import { translateAuthApiError } from '$lib/auth/translateApiError';
+	import {
+		translateEmailValidation,
+		translatePasswordValidation
+	} from '$lib/auth/validationMessages';
 	import { validateEmailInput, validatePasswordInput } from '$lib/auth/validation';
+	import { pathWithLang } from '$lib/i18n/url';
+	import { translate } from '$lib/i18n/translate';
+	import SeoHead from '$lib/seo/SeoHead.svelte';
+
+	const ACTIVE_PLUMBERS = 3;
+
+	const sp = $derived(page.url.searchParams);
+	const loc = $derived(page.data.locale);
+	const hrefHome = $derived(`${base}${pathWithLang('/', sp, loc)}`);
+	const hrefRegister = $derived(`${base}${pathWithLang('/register', sp, loc)}`);
+	const hrefRegisterPlumber = $derived(`${base}${pathWithLang('/register/plumber', sp, loc)}`);
+
+	const pageTitle = $derived(translate(loc, 'auth.login.title'));
+	const pageDescription = $derived(translate(loc, 'auth.login.metaDescription'));
 
 	let email = $state('');
 	let password = $state('');
@@ -27,13 +48,13 @@
 		e.preventDefault();
 		clientError = null;
 
-		const emailResult = validateEmailInput(email);
+		const emailResult = translateEmailValidation(loc, validateEmailInput(email));
 		if (!emailResult.ok) {
 			clientError = emailResult.message;
 			return;
 		}
 
-		const pwErr = validatePasswordInput(password);
+		const pwErr = translatePasswordValidation(loc, validatePasswordInput(password));
 		if (pwErr) {
 			clientError = pwErr;
 			return;
@@ -47,23 +68,17 @@
 			});
 			await setSessionFromLogin(loginResponse);
 			if (session.user) {
-				await goto(`${base}${profilePathForRole(session.user.role)}`);
+				await goto(
+					`${base}${pathWithLang(profilePathForRole(session.user.role), page.url.searchParams, page.data.locale)}`
+				);
 			} else {
-				await goto(`${base}/`);
+				await goto(`${base}${pathWithLang('/', page.url.searchParams, page.data.locale)}`);
 			}
 		} catch (err) {
 			if (err instanceof ApiError) {
-				if (err.status === 401) {
-					clientError = 'Invalid email or password.';
-				} else if (err.status === 400 && err.code === 'validation_error') {
-					clientError = err.message ?? 'Please check your input and try again.';
-				} else if (err.status === 403 && err.code === 'account_inactive') {
-					clientError = 'This account is disabled. Contact support if you need help.';
-				} else {
-					clientError = 'Something went wrong. Please try again.';
-				}
+				clientError = translateAuthApiError(loc, err);
 			} else {
-				clientError = 'Network error. Check your connection and try again.';
+				clientError = translate(loc, 'auth.api.network');
 			}
 		} finally {
 			submitting = false;
@@ -71,8 +86,15 @@
 	}
 </script>
 
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	locale={loc}
+	url={page.url}
+	siteOrigin={page.data.siteOrigin}
+/>
+
 <svelte:head>
-	<title>Log in | Fixavon</title>
 	<link
 		rel="stylesheet"
 		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
@@ -84,11 +106,11 @@
 		<div class="hero__pattern" aria-hidden="true"></div>
 		<div class="hero__blob" aria-hidden="true"></div>
 		<div class="hero__content">
-			<a class="hero__logo" href="{base}/">Fixavon</a>
+			<a class="hero__logo" href={hrefHome}>{translate(loc, 'auth.shared.brand')}</a>
 			<div class="hero__copy">
-				<h1 id="hero-heading" class="hero__title">Connecting Tbilisi with trusted professionals.</h1>
+				<h1 id="hero-heading" class="hero__title">{translate(loc, 'auth.login.heroTitle')}</h1>
 				<p class="hero__lead">
-					Access your Fixavon account to manage services or bookings. Professional help at the turn of a tap.
+					{translate(loc, 'auth.login.heroLead')}
 				</p>
 			</div>
 			<div class="hero__trust glass">
@@ -118,9 +140,11 @@
 				<div class="hero__trust-text">
 					<div class="hero__live">
 						<span class="hero__dot" aria-hidden="true"></span>
-						<span class="hero__live-label">3 plumbers active</span>
+						<span class="hero__live-label"
+							>{translate(loc, 'auth.login.activePlumbers', { count: ACTIVE_PLUMBERS })}</span
+						>
 					</div>
-					<p class="hero__live-sub">Available now in Tbilisi</p>
+					<p class="hero__live-sub">{translate(loc, 'auth.login.liveSub')}</p>
 				</div>
 			</div>
 		</div>
@@ -128,18 +152,18 @@
 
 	<section class="panel" aria-labelledby="login-heading">
 		<div class="panel__inner">
-			<a class="panel__logo-mobile" href="{base}/">Fixavon</a>
+			<a class="panel__logo-mobile" href={hrefHome}>{translate(loc, 'auth.shared.brand')}</a>
 
 			{#if verifiedBanner}
 				<div class="banner" role="status">
 					<span class="material-symbols-outlined banner__icon">mark_email_read</span>
-					<p class="banner__text">Email verified — you can log in.</p>
+					<p class="banner__text">{translate(loc, 'auth.login.verifiedBanner')}</p>
 				</div>
 			{/if}
 
 			<div class="panel__header">
-				<h2 id="login-heading" class="panel__title">Welcome back</h2>
-				<p class="panel__subtitle">Log in to continue to Fixavon</p>
+				<h2 id="login-heading" class="panel__title">{translate(loc, 'auth.login.welcomeTitle')}</h2>
+				<p class="panel__subtitle">{translate(loc, 'auth.login.welcomeSubtitle')}</p>
 			</div>
 
 			<div class="card">
@@ -149,7 +173,7 @@
 					{/if}
 
 					<div class="field">
-						<label class="field__label" for="login-email">Email</label>
+						<label class="field__label" for="login-email">{translate(loc, 'auth.shared.email')}</label>
 						<div class="field__input-wrap">
 							<span class="material-symbols-outlined field__icon">mail</span>
 							<input
@@ -158,7 +182,7 @@
 								type="email"
 								name="email"
 								autocomplete="email"
-								placeholder="you@example.com"
+								placeholder={translate(loc, 'auth.login.emailPlaceholder')}
 								bind:value={email}
 								disabled={submitting}
 								required
@@ -168,8 +192,10 @@
 
 					<div class="field">
 						<div class="field__row">
-							<label class="field__label" for="login-password">Password</label>
-							<a class="field__link" href="{base}/">Forgot password?</a>
+							<label class="field__label" for="login-password"
+								>{translate(loc, 'auth.shared.password')}</label
+							>
+							<a class="field__link" href={hrefHome}>{translate(loc, 'auth.login.forgotPassword')}</a>
 						</div>
 						<div class="field__input-wrap">
 							<span class="material-symbols-outlined field__icon">lock</span>
@@ -179,7 +205,7 @@
 								type={showPassword ? 'text' : 'password'}
 								name="password"
 								autocomplete="current-password"
-								placeholder="••••••••"
+								placeholder={translate(loc, 'auth.login.passwordPlaceholder')}
 								bind:value={password}
 								disabled={submitting}
 								required
@@ -187,7 +213,9 @@
 							<button
 								class="field__toggle"
 								type="button"
-								aria-label={showPassword ? 'Hide password' : 'Show password'}
+								aria-label={showPassword
+									? translate(loc, 'auth.login.hidePassword')
+									: translate(loc, 'auth.login.showPassword')}
 								disabled={submitting}
 								onclick={() => (showPassword = !showPassword)}
 							>
@@ -200,7 +228,7 @@
 
 					<div class="form__actions">
 						<button class="btn-submit" type="submit" disabled={submitting}>
-							{submitting ? 'Signing in…' : 'Log in'}
+							{submitting ? translate(loc, 'auth.login.signingIn') : translate(loc, 'auth.login.logInCta')}
 						</button>
 					</div>
 				</form>
@@ -208,26 +236,26 @@
 
 			<div class="divider">
 				<span class="divider__line"></span>
-				<span class="divider__text">New to Fixavon?</span>
+				<span class="divider__text">{translate(loc, 'auth.login.dividerNew')}</span>
 				<span class="divider__line"></span>
 			</div>
 
 			<div class="signup-grid">
-				<a class="signup-card signup-card--client" href="{base}/register">
+				<a class="signup-card signup-card--client" href={hrefRegister}>
 					<span class="material-symbols-outlined signup-card__icon">person</span>
-					<span class="signup-card__label">Register as client</span>
+					<span class="signup-card__label">{translate(loc, 'auth.login.registerClient')}</span>
 				</a>
-				<a class="signup-card signup-card--plumber" href="{base}/register/plumber">
+				<a class="signup-card signup-card--plumber" href={hrefRegisterPlumber}>
 					<span class="material-symbols-outlined signup-card__icon">engineering</span>
-					<span class="signup-card__label">Become a plumber</span>
+					<span class="signup-card__label">{translate(loc, 'auth.login.becomePlumber')}</span>
 				</a>
 			</div>
 
 			<p class="legal">
-				By logging in, you agree to Fixavon&apos;s
-				<a href="{base}/">Terms of Service</a>
-				and
-				<a href="{base}/">Privacy Policy</a>.
+				{translate(loc, 'auth.login.legalByLogging')}
+				<a href={hrefHome}>{translate(loc, 'auth.shared.termsOfService')}</a>
+				{translate(loc, 'auth.login.legalAnd')}
+				<a href={hrefHome}>{translate(loc, 'auth.shared.privacyPolicy')}</a>.
 			</p>
 		</div>
 	</section>

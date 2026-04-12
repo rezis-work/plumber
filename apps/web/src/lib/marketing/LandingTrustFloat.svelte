@@ -1,6 +1,14 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { translate } from '$lib/i18n/translate';
+
+	const loc = $derived(page.data.locale);
+	const TRUST_COUNT = 3;
+</script>
+
 <div class="float" role="status">
 	<span class="float__dot" aria-hidden="true"></span>
-	<span class="float__text">3 plumbers active in Tbilisi right now</span>
+	<span class="float__text">{translate(loc, 'marketing.trustFloat.text', { count: TRUST_COUNT })}</span>
 </div>
 
 <style>
