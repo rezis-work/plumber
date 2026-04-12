@@ -121,7 +121,7 @@ impl From<crate::modules::users::PlumberProfile> for PlumberProfileResponse {
         Self {
             full_name: p.full_name,
             phone: p.phone,
-            years_of_experience: p.years_of_experience,
+            years_of_experience: p.experience_years,
         }
     }
 }

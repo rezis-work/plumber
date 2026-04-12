@@ -152,17 +152,23 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **Purpose:** Plumber public/dispatch profile: approval, live location, radius, aggregates for ranking.
 
-**Current (repo):** `user_id` PK, `full_name`, `phone`, `years_of_experience`.
+#### As implemented (repo)
 
-**Target shape:**
+**Migrations:** surrogate `id` + `user_id` unique — `20260210120002_plumber_profiles_surrogate_id`; §6.3 columns, rename to `experience_years`, CHECKs, indexes — `20260210120005_plumber_profiles_dispatch_columns`.
+
+**Rust:** [`PlumberProfile`](../../apps/api/src/modules/users/model.rs) matches the table (including `rust_decimal::Decimal` for `service_radius_km` and `rating_avg`). Registration still inserts `user_id`, `full_name`, `phone`, `experience_years` only; other columns use DB defaults. Public JSON for plumbers still exposes `years_of_experience` (maps from `experience_years`).
+
+**Not yet:** admin approval routes, plumber APIs to update online/availability/location, `updated_at` trigger.
+
+#### Reference shape (columns)
 
 | Column | Type | FK / notes |
 |--------|------|------------|
-| `id` | UUID PK | **New**; backfill migration |
+| `id` | UUID PK | Surrogate key for plumber-scoped FKs |
 | `user_id` | UUID NOT NULL UNIQUE | → `users.id` **ON DELETE CASCADE** |
 | `full_name` | TEXT NOT NULL | |
 | `phone` | TEXT NOT NULL | |
-| `experience_years` | INTEGER NOT NULL | Rename from `years_of_experience` in migration if desired |
+| `experience_years` | INTEGER NOT NULL | Renamed from `years_of_experience` |
 | `bio` | TEXT NULL | |
 | `avatar_url` | TEXT NULL | |
 | `is_approved` | BOOLEAN NOT NULL DEFAULT false | |
@@ -185,12 +191,12 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **Indexes (dispatch + admin):**
 
-- `(is_approved, is_online, is_available)` — partial `WHERE is_approved = true AND is_online = true AND is_available = true` optional for hot path.
+- Partial hot path: `(is_approved, is_online, is_available)` WHERE all three true (`idx_plumber_profiles_dispatch_ready_partial`).
 - `(current_city_id)`, `(current_area_id)`.
-- `(last_location_updated_at DESC)` — freshness.
-- Composite example: `(is_approved, is_online, is_available, current_city_id)` if most queries filter by city.
+- `(last_location_updated_at DESC)` (`idx_plumber_profiles_last_location_updated_at`).
+- Partial composite `(is_approved, is_online, is_available, current_city_id)` WHERE all three true (`idx_plumber_profiles_dispatch_city`).
 
-**Check:** `service_radius_km > 0`, `experience_years >= 0`, `rating_avg BETWEEN 0 AND 5` (if 5-star scale).
+**Check:** `service_radius_km > 0`, `experience_years >= 0` (inherited from original table check, updated on rename), `rating_avg` in `[0, 5]`.
 
 ---
 
@@ -244,6 +250,16 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **Indexes:** `(city_id)`, `(area_id)`, `(city_id, area_id)`.
 
+#### As implemented (§6.4–§6.6)
+
+**Migration:** `20260210120003_geography_reference_tables` — [`20260210120003_geography_reference_tables.up.sql`](../../apps/api/migrations/20260210120003_geography_reference_tables.up.sql) creates `cities`, `areas`, and `streets` with `created_at` / `updated_at` defaulting to `now()`.
+
+**Indexes (named):** `idx_cities_is_active`; `idx_areas_city_id`, `idx_areas_city_id_is_active`; partial uniques `streets_city_area_slug_unique`, `streets_city_slug_null_area_unique`; `idx_streets_city_id`, `idx_streets_area_id`, `idx_streets_city_id_area_id`. Table-level UNIQUE on `cities.slug`; UNIQUE (`city_id`, `slug`) on `areas`.
+
+**Rust:** [`City`](../../apps/api/src/modules/geography/model.rs), `Area`, `Street` (`sqlx::FromRow`); [`GeographyRepository`](../../apps/api/src/modules/geography/repository.rs) — city list and area/street lookups (optional `include_inactive` for admin-style reads).
+
+**HTTP:** public/admin geography routes are deferred until clients define URL shape and auth; **dev seeds:** optional example SQL in [`apps/api/seeds/dev_geography_example.sql`](../../apps/api/seeds/dev_geography_example.sql) (see §11).
+
 ---
 
 ### 6.7 `service_categories`
@@ -260,6 +276,16 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 | `created_at`, `updated_at` | TIMESTAMPTZ | |
 
 **Indexes:** UNIQUE(`slug`), `(is_active, sort_order)`.
+
+#### As implemented (§6.7)
+
+**Migration:** `20260210120006_service_categories` — [`20260210120006_service_categories.up.sql`](../../apps/api/migrations/20260210120006_service_categories.up.sql) creates `service_categories` with `created_at` / `updated_at` defaulting to `now()`.
+
+**Indexes (named):** UNIQUE on `slug` (table constraint); `idx_service_categories_is_active_sort_order` on `(is_active, sort_order)`.
+
+**Rust:** [`ServiceCategory`](../../apps/api/src/modules/service_categories/model.rs) (`sqlx::FromRow`); [`ServiceCategoryRepository`](../../apps/api/src/modules/service_categories/repository.rs) — `find_by_slug`, `find_by_id`, `list(include_inactive)` ordered by `sort_order`, `name`.
+
+**HTTP:** deferred until clients need a public catalog API; **dev seeds:** [`apps/api/seeds/dev_service_categories_example.sql`](../../apps/api/seeds/dev_service_categories_example.sql) (§11).
 
 ---
 
@@ -286,6 +312,20 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **Uniqueness (optional):** prevent duplicate rows per scope, e.g. **UNIQUE (`service_category_id`, `city_id`, `area_id`)** with sentinel for NULL geography if you use NULL = “national default” (otherwise use partial uniques).
 
+#### As implemented (§6.8)
+
+**Migration:** `20260210120007_service_price_guides` — [`20260210120007_service_price_guides.up.sql`](../../apps/api/migrations/20260210120007_service_price_guides.up.sql) creates `service_price_guides` with `created_at` / `updated_at` defaulting to `now()`.
+
+**CHECKs (named):** `service_price_guides_min_lte_max`, `service_price_guides_duration_positive`, `service_price_guides_area_requires_city` (`area_id` set only when `city_id` is set).
+
+**Indexes (named):** `idx_service_price_guides_service_category_id`, `idx_service_price_guides_city_id`, `idx_service_price_guides_area_id`, `idx_service_price_guides_category_city_area`.
+
+**Partial uniques (NULL-safe scope):** `service_price_guides_category_global_unique` (global default per category), `service_price_guides_category_city_unique` (city scope, no area), `service_price_guides_category_city_area_unique` (area scope). Seeds/app should keep `city_id` consistent with the area’s city when `area_id` is set.
+
+**Rust:** [`ServicePriceGuide`](../../apps/api/src/modules/service_price_guides/model.rs) (`sqlx::FromRow`, `rust_decimal::Decimal` for prices); [`ServicePriceGuideRepository`](../../apps/api/src/modules/service_price_guides/repository.rs) — `find_by_id`, `list_by_service_category_id`, `find_exact_scope`.
+
+**HTTP:** deferred; **dev seeds:** [`apps/api/seeds/dev_service_price_guides_example.sql`](../../apps/api/seeds/dev_service_price_guides_example.sql) (§11).
+
 ---
 
 ### 6.9 `plumber_services`
@@ -300,6 +340,18 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 **Constraints:** **UNIQUE (`plumber_id`, `service_category_id`)**.
 
 **Indexes:** `(service_category_id)` — “all plumbers offering X”, `(plumber_id)`.
+
+#### As implemented (§6.9)
+
+**Migration:** `20260210120008_plumber_services` — [`20260210120008_plumber_services.up.sql`](../../apps/api/migrations/20260210120008_plumber_services.up.sql) creates `plumber_services` with `created_at` defaulting to `now()`.
+
+**Constraints:** `plumber_services_plumber_category_unique` — **UNIQUE (`plumber_id`, `service_category_id`)**.
+
+**Indexes (named):** `idx_plumber_services_service_category_id`, `idx_plumber_services_plumber_id`.
+
+**Rust:** [`PlumberService`](../../apps/api/src/modules/plumber_services/model.rs) (`sqlx::FromRow`); [`PlumberServiceRepository`](../../apps/api/src/modules/plumber_services/repository.rs) — `list_by_plumber_id`, `list_plumber_ids_by_service_category_id`, `find_by_plumber_and_category`.
+
+**HTTP / seeds:** deferred (junction rows need real `plumber_profiles.id`; no dev seed in-repo until fixture plumbers exist).
 
 ---
 
@@ -319,6 +371,20 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **Indexes:** `(city_id, area_id)`, `(plumber_id)`.
 
+#### As implemented (§6.10)
+
+**Migration:** `20260210120009_plumber_service_areas` — [`20260210120009_plumber_service_areas.up.sql`](../../apps/api/migrations/20260210120009_plumber_service_areas.up.sql) creates `plumber_service_areas` with `created_at` defaulting to `now()`.
+
+**Uniqueness:** partial uniques (NULL `area_id` = whole city): `plumber_service_areas_plumber_city_whole_unique` on `(plumber_id, city_id)` where `area_id IS NULL`; `plumber_service_areas_plumber_city_area_unique` on `(plumber_id, city_id, area_id)` where `area_id IS NOT NULL`.
+
+**Indexes (named):** `idx_plumber_service_areas_plumber_id`, `idx_plumber_service_areas_city_area`.
+
+**Consistency:** ensuring `areas.city_id` matches `city_id` when `area_id` is set is **app/seed enforced** (no DB trigger in this migration).
+
+**Rust:** [`PlumberServiceArea`](../../apps/api/src/modules/plumber_service_areas/model.rs) (`sqlx::FromRow`); [`PlumberServiceAreaRepository`](../../apps/api/src/modules/plumber_service_areas/repository.rs) — `list_by_plumber_id`, `find_by_plumber_city_and_area`.
+
+**HTTP / seeds:** deferred (rows need real `plumber_profiles.id`).
+
 ---
 
 ### 6.11 `plumber_status_history`
@@ -332,6 +398,18 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 | `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | |
 
 **Indexes:** `(plumber_id, created_at DESC)`, `(status_type, created_at DESC)`.
+
+#### As implemented (§6.11)
+
+**Migration:** `20260210120010_plumber_status_history` — [`20260210120010_plumber_status_history.up.sql`](../../apps/api/migrations/20260210120010_plumber_status_history.up.sql) creates `plumber_status_history` with `created_at` defaulting to `now()`.
+
+**Enum:** `plumber_status_type` already defined in [`20260210120000_phase2_domain_enums`](../../apps/api/migrations/20260210120000_phase2_domain_enums.up.sql); Rust [`PlumberStatusType`](../../apps/api/src/modules/domain_enums.rs).
+
+**Indexes (named):** `idx_plumber_status_history_plumber_created_at`, `idx_plumber_status_history_status_created_at`.
+
+**Rust:** [`PlumberStatusHistory`](../../apps/api/src/modules/plumber_status_history/model.rs) (`sqlx::FromRow`, `meta` as `Option<sqlx::types::Json<serde_json::Value>>`); [`PlumberStatusHistoryRepository`](../../apps/api/src/modules/plumber_status_history/repository.rs) — `list_by_plumber_id`, `insert`.
+
+**Not yet:** calling `insert` from HTTP when `plumber_profiles` online/availability flags change; admin analytics UI.
 
 ---
 
@@ -375,6 +453,24 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **PostGIS (optional later):** `geography(Point)` + GIST for heavy spatial load; v1 can use **Haversine in app** with btree on `(city_id)` pre-filter.
 
+#### As implemented (§6.12)
+
+**Migration:** `20260210120011_orders` — [`20260210120011_orders.up.sql`](../../apps/api/migrations/20260210120011_orders.up.sql).
+
+**Enums:** `order_urgency`, `order_status` from [`20260210120000_phase2_domain_enums`](../../apps/api/migrations/20260210120000_phase2_domain_enums.up.sql); Rust [`OrderUrgency`](../../apps/api/src/modules/domain_enums.rs), [`OrderStatus`](../../apps/api/src/modules/domain_enums.rs).
+
+**Defaults:** `urgency` `'normal'`, `status` `'searching'`, `requested_at` / `created_at` / `updated_at` → `now()`.
+
+**CHECK:** `orders_estimated_price_min_lte_max` when both estimate columns are set.
+
+**Indexes (named):** `idx_orders_status_requested_at`, `idx_orders_client_requested_at`, `idx_orders_assigned_plumber_id` (partial, assigned only), `idx_orders_service_category_id`, `idx_orders_city_id`, `idx_orders_area_id`, `idx_orders_requested_at`, partial `idx_orders_dispatch_queue` (`searching` / `dispatched`).
+
+**Geography:** `area_id` / `street_id` consistency with `city_id` is **app-enforced** (no trigger).
+
+**Rust:** [`Order`](../../apps/api/src/modules/orders/model.rs) (`sqlx::FromRow`, `f64` lat/lng, `rust_decimal::Decimal` for prices); [`OrderRepository`](../../apps/api/src/modules/orders/repository.rs) — `find_by_id`, `list_by_client_id`, `insert`.
+
+**Not yet:** create-order HTTP, dispatch workers, PostGIS, automatic `updated_at` on lifecycle updates.
+
 ---
 
 ### 6.13 `order_dispatches`
@@ -399,6 +495,20 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 - `(order_id)`, `(plumber_id)`.
 - `(status, sent_at DESC)`.
 - `(plumber_id, status, sent_at DESC)` — response analytics.
+
+#### As implemented (§6.13)
+
+**Migration:** `20260210120012_order_dispatches` — [`20260210120012_order_dispatches.up.sql`](../../apps/api/migrations/20260210120012_order_dispatches.up.sql).
+
+**Enum:** `dispatch_status` in [`20260210120000_phase2_domain_enums`](../../apps/api/migrations/20260210120000_phase2_domain_enums.up.sql); Rust [`DispatchStatus`](../../apps/api/src/modules/domain_enums.rs).
+
+**Constraints:** `order_dispatches_order_plumber_unique` — **UNIQUE (`order_id`, `plumber_id`)**; `order_dispatches_dispatch_rank_positive` — **CHECK (`dispatch_rank` >= 1)**.
+
+**Indexes (named):** `idx_order_dispatches_order_id`, `idx_order_dispatches_plumber_id`, `idx_order_dispatches_status_sent_at`, `idx_order_dispatches_plumber_status_sent_at`.
+
+**Rust:** [`OrderDispatch`](../../apps/api/src/modules/order_dispatches/model.rs) (`sqlx::FromRow`); [`OrderDispatchRepository`](../../apps/api/src/modules/order_dispatches/repository.rs) — `find_by_id`, `find_by_order_and_plumber`, `list_by_order_id`, `insert`.
+
+**Not yet:** background dispatch worker, plumber accept/reject HTTP, Redis job tokens (`lost_race` / race resolution) — see [`implementation_003_orders_dispatch_tokens_redis.md`](./implementation_003_orders_dispatch_tokens_redis.md).
 
 ---
 
@@ -434,6 +544,20 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **Indexes:** `(admin_id, created_at DESC)`, `(entity_type, entity_id)`, `(created_at DESC)`.
 
+#### As implemented (§6.15)
+
+**Migration:** `20260210120013_admin_audit_logs` — [`20260210120013_admin_audit_logs.up.sql`](../../apps/api/migrations/20260210120013_admin_audit_logs.up.sql).
+
+**`admin_id`:** implemented **nullable** (`UUID NULL`) with **ON DELETE SET NULL** on `users` — matches Phase 2 Step 11 (system actions and retained history). The reference table above incorrectly says `NOT NULL` for `admin_id`.
+
+**Indexes (named):** `idx_admin_audit_logs_admin_created_at`, `idx_admin_audit_logs_entity`, `idx_admin_audit_logs_created_at`.
+
+**Rust:** [`AdminAuditLog`](../../apps/api/src/modules/admin_audit_logs/model.rs) (`sqlx::FromRow`, JSONB `meta`); [`AdminAuditLogRepository`](../../apps/api/src/modules/admin_audit_logs/repository.rs) — `insert`, `list_by_entity`, `list_recent`.
+
+**Dev seed (high volume):** [`apps/api/seeds/dev_admin_audit_logs_rich.sql`](../../apps/api/seeds/dev_admin_audit_logs_rich.sql) — `TRUNCATE` + ~420 system rows + optional ~30 rows attributed to first admin user if present (§11).
+
+**Not yet:** admin HTTP / middleware calling `insert`, PII redaction policy for `meta`.
+
 ---
 
 ## 7. Foreign key ON DELETE summary
@@ -446,6 +570,7 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 | `orders.assigned_plumber_id` | SET NULL | Plumber profile removed → order history stays |
 | `order_dispatches` → order | CASCADE | |
 | `reviews` → order | CASCADE | |
+| `admin_audit_logs.admin_id` | SET NULL | Log survives admin user removal; NULL = system / batch |
 
 ---
 
@@ -499,9 +624,19 @@ Concrete folder suggestions: [step-by-step guide § Rust module layout](./implem
 
 ## 11. Seed data (structure only this phase)
 
-- **Cities / areas / streets:** JSON or SQL seeds aligned with Tbilisi rollout; use **`slug`** stability for idempotent seeds.
-- **Service categories:** seed rows matching marketing copy (leak repair, drain cleaning, …).
-- **Price guides:** optional seed per city + category with **GEL** ranges.
+**Recommended dev reset (full aligned dataset, all migrated Phase 2 tables except `reviews`):**
+
+1. Apply schema: `sqlx migrate run` (from [`apps/api`](../../apps/api)).
+2. Wipe data in FK-safe order: [`apps/api/seeds/dev_truncate_all.sql`](../../apps/api/seeds/dev_truncate_all.sql) — **dev-only**; truncates `refresh_tokens` (all sessions invalidated) and the domain tables listed in the file header.
+3. Load bulk seed: [`apps/api/seeds/dev_seed_comprehensive.sql`](../../apps/api/seeds/dev_seed_comprehensive.sql) — geography, catalog, users (shared Argon2 password documented in the header), profiles, price guides, plumber capabilities, status history, orders, dispatches, and admin audit rows. Run only on an empty database (after step 2 or a fresh DB).
+4. Optional: re-run [`apps/api/seeds/dev_admin_audit_logs_rich.sql`](../../apps/api/seeds/dev_admin_audit_logs_rich.sql) alone if you want the larger audit-only slice without repeating the full comprehensive seed.
+
+Smaller, table-focused examples (still valid for partial setups):
+
+- **Cities / areas / streets:** JSON or SQL seeds aligned with Tbilisi rollout; use **`slug`** stability for idempotent seeds. Example dev SQL: [`apps/api/seeds/dev_geography_example.sql`](../../apps/api/seeds/dev_geography_example.sql).
+- **Service categories:** seed rows matching marketing copy (leak repair, drain cleaning, …). Example dev SQL: [`apps/api/seeds/dev_service_categories_example.sql`](../../apps/api/seeds/dev_service_categories_example.sql).
+- **Price guides:** optional seed per city + category with **GEL** ranges. Example dev SQL: [`apps/api/seeds/dev_service_price_guides_example.sql`](../../apps/api/seeds/dev_service_price_guides_example.sql).
+- **Admin audit (dev volume):** [`apps/api/seeds/dev_admin_audit_logs_rich.sql`](../../apps/api/seeds/dev_admin_audit_logs_rich.sql) — hundreds of synthetic `admin_audit_logs` rows (fake IPs/meta) for dashboard and list UI; **dev-only**, run manually after migrations.
 
 Do **not** seed fake orders in production migrations; use dev-only seeds or fixtures.
 

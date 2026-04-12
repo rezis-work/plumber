@@ -240,11 +240,7 @@ pub async fn register_plumber(
 
     Ok(RegisterPlumberResponse {
         user: UserResponse::from(user),
-        profile: PlumberProfileResponse {
-            full_name: profile.full_name,
-            phone: profile.phone,
-            years_of_experience: profile.years_of_experience,
-        },
+        profile: PlumberProfileResponse::from(profile),
     })
 }
 
@@ -603,7 +599,7 @@ mod tests {
         assert!(stored.email_verification_token_hash.is_none());
 
         let row: (String, String, i32) = sqlx::query_as(
-            "SELECT full_name, phone, years_of_experience FROM plumber_profiles WHERE user_id = $1",
+            "SELECT full_name, phone, experience_years FROM plumber_profiles WHERE user_id = $1",
         )
         .bind(res.user.id)
         .fetch_one(state.users.pool())

@@ -1,5 +1,5 @@
 //! PostgreSQL enum mirrors for Implementation 003 §5 (`20260210120000_phase2_domain_enums`).
-//! No `orders` / `order_dispatches` / `plumber_status_history` tables yet; these types are ready for `sqlx` when those migrations land.
+//! `orders` — `20260210120011_orders`; `order_dispatches` — `20260210120012_order_dispatches`. `plumber_status_type` — `plumber_status_history` (`20260210120010_plumber_status_history`).
 
 #![allow(dead_code)]
 

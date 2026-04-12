@@ -22,6 +22,7 @@ jsonwebtoken = "9"
 sha2 = "0.10"
 password-hash = "0.5"
 rand_core = { version = "0.6", features = ["std"] }
+rust_decimal = { version = "1.39", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 subtle = "2"
@@ -32,6 +33,8 @@ sqlx = { version = "0.8", features = [
     "migrate",
     "uuid",
     "chrono",
+    "json",
+    "rust_decimal",
     "tls-native-tls",
 ] }
 tokio = { version = "1", features = ["full"] }

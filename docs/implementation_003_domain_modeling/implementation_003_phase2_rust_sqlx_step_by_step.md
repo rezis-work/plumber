@@ -50,6 +50,8 @@ Create types (names align with [domain doc §5](./implementation_003_domain_mode
 
 Indexes: per [domain doc §6.4–6.6](./implementation_003_domain_modeling.md).
 
+**Status:** done — migration `20260210120003_geography_reference_tables`; Rust [`geography`](../../apps/api/src/modules/geography/) (`City`, `Area`, `Street`, [`GeographyRepository`](../../apps/api/src/modules/geography/repository.rs)).
+
 ---
 
 ### Step 3 — Service catalog
@@ -58,6 +60,8 @@ Indexes: per [domain doc §6.4–6.6](./implementation_003_domain_modeling.md).
 2. **`service_price_guides`** — FKs to category, optional city/area, min/max price, CHECK min ≤ max, currency, duration, emergency flag, timestamps  
 
 Indexes: FK columns + composite for lookups.
+
+**Status:** done — migrations `20260210120006_service_categories`, `20260210120007_service_price_guides`; Rust [`service_categories`](../../apps/api/src/modules/service_categories/) (`ServiceCategory`, `ServiceCategoryRepository`), [`service_price_guides`](../../apps/api/src/modules/service_price_guides/) (`ServicePriceGuide`, `ServicePriceGuideRepository`).
 
 ---
 
@@ -87,15 +91,17 @@ Indexes: `(role, user_status, created_at DESC)`, `(user_status, created_at DESC)
 
 Indexes: approved/online/available, `current_city_id`, `current_area_id`, `last_location_updated_at`, optional composite for hot dispatch query.
 
-**Follow-up:** Update [`PlumberProfile`](../../apps/api/src/modules/users/model.rs) and all SQL that selected `user_id` as PK to use **`id`** for new joins; `user_id` remains for auth linkage.
+**Follow-up:** New tables should FK **`plumber_profiles.id`**; `user_id` remains for auth linkage.
 
-**Status (foundations): surrogate `id` done** — migration `20260210120002_plumber_profiles_surrogate_id`; model + repository return `id`. **Not yet:** dispatch columns, `experience_years` rename, dispatch indexes.
+**Status:** done — surrogate `id`: `20260210120002_plumber_profiles_surrogate_id`. §6.3 dispatch columns, `experience_years` rename, CHECKs, indexes: `20260210120005_plumber_profiles_dispatch_columns`; [`PlumberProfile`](../../apps/api/src/modules/users/model.rs) + repository `RETURNING` full row. **Not yet:** plumber profile dispatch fields in public JSON (optional), admin approval / location APIs, `updated_at` maintenance beyond defaults.
 
 ---
 
 ### Step 6 — `client_profiles`
 
 New table: 1:1 with `users` (UNIQUE `user_id`), optional default city/area/street FKs, address_line, lat/lng, timestamps.
+
+**Status:** done — migration `20260210120004_client_profiles`; Rust [`ClientProfile`](../../apps/api/src/modules/users/model.rs) + [`ClientProfileRepository`](../../apps/api/src/modules/users/client_profile_repository.rs) (`find_by_user_id`, `upsert`). **Not yet:** HTTP CRUD, `GET /auth/me` embedding profile, DB trigger for `role = client`.
 
 ---
 
@@ -107,6 +113,8 @@ All reference **`plumber_profiles.id`**:
 - **`plumber_service_areas`** — city required, area nullable; UNIQUE with partial indexes for NULL area if needed  
 - **`plumber_status_history`** — plumber_id, status_type enum, meta jsonb, created_at  
 
+**Status:** done — `plumber_services` — migration `20260210120008_plumber_services`; Rust [`plumber_services`](../../apps/api/src/modules/plumber_services/). `plumber_service_areas` — migration `20260210120009_plumber_service_areas`; Rust [`plumber_service_areas`](../../apps/api/src/modules/plumber_service_areas/). `plumber_status_history` — migration `20260210120010_plumber_status_history`; Rust [`plumber_status_history`](../../apps/api/src/modules/plumber_status_history/) (`sqlx` `json` feature for JSONB). **Not yet:** admin HTTP to manage capabilities, dispatch “coverage” queries combining whole-city vs area rows, wiring `PlumberStatusHistoryRepository::insert` into plumber toggle / profile update flows.
+
 ---
 
 ### Step 8 — `orders`
@@ -115,14 +123,18 @@ FKs: `client_id` → **users.id**, `assigned_plumber_id` → **plumber_profiles.
 
 Indexes: status+requested_at, client_id, assigned_plumber_id, service_category_id, city_id, area_id, requested_at.
 
+**Status:** done — migration `20260210120011_orders`; Rust [`orders`](../../apps/api/src/modules/orders/) (`Order`, `OrderRepository`: `find_by_id`, `list_by_client_id`, `insert`). **Not yet:** client create-order HTTP, dispatch workers, `updated_at` maintenance on status transitions.
+
 ---
 
 ### Step 9 — `order_dispatches`
 
-FKs: order_id, plumber_id → plumber_profiles.id, dispatch_rank, dispatch_status, sent_at, responded_at, created_at.  
+FKs: `order_id` → **orders.id** (**ON DELETE CASCADE**), `plumber_id` → **plumber_profiles.id** (**ON DELETE CASCADE**); `dispatch_rank`, `dispatch_status` (`status` column), `sent_at`, `responded_at`, `created_at`.  
 **UNIQUE (order_id, plumber_id).**
 
 Indexes: order_id, plumber_id, status+sent_at, composite for plumber analytics.
+
+**Status:** done — migration `20260210120012_order_dispatches`; Rust [`order_dispatches`](../../apps/api/src/modules/order_dispatches/) (`OrderDispatch`, `OrderDispatchRepository`). **Not yet:** worker loop, mobile accept/reject HTTP, Redis job tokens — see [`implementation_003_orders_dispatch_tokens_redis.md`](./implementation_003_orders_dispatch_tokens_redis.md).
 
 ---
 
@@ -138,12 +150,15 @@ UNIQUE(order_id). FKs: client_id → users, plumber_id → plumber_profiles.id. 
 
 Indexes: (admin_id, created_at DESC), (entity_type, entity_id), (created_at DESC).
 
+**Status:** done — migration `20260210120013_admin_audit_logs`; Rust [`admin_audit_logs`](../../apps/api/src/modules/admin_audit_logs/) (`AdminAuditLog`, `AdminAuditLogRepository`); rich dev seed [`dev_admin_audit_logs_rich.sql`](../../apps/api/seeds/dev_admin_audit_logs_rich.sql). **Not yet:** calling `insert` from admin HTTP middleware, PII redaction in `meta`.
+
 ---
 
 ### Step 12 — Seeds (optional, dev/staging)
 
 - SQL or `sqlx` fixture: **Tbilisi** city + sample areas; **service_categories** rows (leak repair, drain cleaning, …).  
 - No fake **orders** in production migrations.
+- For a **single-shot** dev database with large, FK-consistent data across all migrated Phase 2 tables, use the run order in [domain doc §11](./implementation_003_domain_modeling.md): migrate → [`dev_truncate_all.sql`](../../apps/api/seeds/dev_truncate_all.sql) → [`dev_seed_comprehensive.sql`](../../apps/api/seeds/dev_seed_comprehensive.sql).
 
 ---
 

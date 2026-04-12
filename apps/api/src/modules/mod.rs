@@ -1,3 +1,12 @@
+pub mod admin_audit_logs;
 pub mod auth;
 pub mod domain_enums;
+pub mod geography;
+pub mod order_dispatches;
+pub mod orders;
+pub mod plumber_service_areas;
+pub mod plumber_services;
+pub mod plumber_status_history;
+pub mod service_categories;
+pub mod service_price_guides;
 pub mod users;

@@ -4,6 +4,15 @@ use uuid::Uuid;
 
 use super::model::{PlumberProfile, Role, User, UserStatus};
 
+const PLUMBER_PROFILE_COLUMNS: &str = r#"
+    id, user_id, full_name, phone, experience_years,
+    bio, avatar_url, is_approved, approved_at, approved_by,
+    is_online, is_available, current_city_id, current_area_id, current_street_id,
+    current_lat, current_lng, service_radius_km, last_location_updated_at,
+    rating_avg, rating_count, completed_orders_count, cancelled_orders_count,
+    created_at, updated_at
+"#;
+
 const USER_COLUMNS: &str = r#"
     id, email, password_hash, role, user_status, last_login_at, blocked_at, deleted_at,
     is_email_verified, email_verification_token_hash, email_verification_expires_at,
@@ -109,13 +118,14 @@ impl UserRepository {
         phone: &str,
         years_of_experience: i32,
     ) -> Result<PlumberProfile, sqlx::Error> {
-        sqlx::query_as::<_, PlumberProfile>(
+        let q = format!(
             r#"
-            INSERT INTO plumber_profiles (user_id, full_name, phone, years_of_experience)
+            INSERT INTO plumber_profiles (user_id, full_name, phone, experience_years)
             VALUES ($1, $2, $3, $4)
-            RETURNING id, user_id, full_name, phone, years_of_experience
-            "#,
-        )
+            RETURNING {PLUMBER_PROFILE_COLUMNS}
+            "#
+        );
+        sqlx::query_as::<_, PlumberProfile>(&q)
         .bind(user_id)
         .bind(full_name)
         .bind(phone)
@@ -206,13 +216,14 @@ impl UserRepository {
         &self,
         user_id: Uuid,
     ) -> Result<Option<PlumberProfile>, sqlx::Error> {
-        sqlx::query_as::<_, PlumberProfile>(
+        let q = format!(
             r#"
-            SELECT id, user_id, full_name, phone, years_of_experience
+            SELECT {PLUMBER_PROFILE_COLUMNS}
             FROM plumber_profiles
             WHERE user_id = $1
-            "#,
-        )
+            "#
+        );
+        sqlx::query_as::<_, PlumberProfile>(&q)
         .bind(user_id)
         .fetch_optional(&self.pool)
         .await

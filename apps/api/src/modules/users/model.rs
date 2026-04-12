@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::Serialize;
 use sqlx::Type;
 use uuid::Uuid;
@@ -57,7 +58,43 @@ pub struct PlumberProfile {
     pub user_id: Uuid,
     pub full_name: String,
     pub phone: String,
-    pub years_of_experience: i32,
+    pub experience_years: i32,
+    pub bio: Option<String>,
+    pub avatar_url: Option<String>,
+    pub is_approved: bool,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub approved_by: Option<Uuid>,
+    pub is_online: bool,
+    pub is_available: bool,
+    pub current_city_id: Option<Uuid>,
+    pub current_area_id: Option<Uuid>,
+    pub current_street_id: Option<Uuid>,
+    pub current_lat: Option<f64>,
+    pub current_lng: Option<f64>,
+    pub service_radius_km: Decimal,
+    pub last_location_updated_at: Option<DateTime<Utc>>,
+    pub rating_avg: Decimal,
+    pub rating_count: i32,
+    pub completed_orders_count: i32,
+    pub cancelled_orders_count: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ClientProfile {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub full_name: String,
+    pub phone: String,
+    pub default_city_id: Option<Uuid>,
+    pub default_area_id: Option<Uuid>,
+    pub default_street_id: Option<Uuid>,
+    pub address_line: Option<String>,
+    pub lat: Option<f64>,
+    pub lng: Option<f64>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
