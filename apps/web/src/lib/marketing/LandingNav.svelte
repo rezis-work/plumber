@@ -140,38 +140,43 @@
 		</button>
 	</nav>
 	{#if menuOpen}
-		<div id="nav-mobile-panel" class="nav__mobile lp-glass-nav md-hide-panel">
-			<a class="nav__mobile-link" href="#services" onclick={closeMenu}>Services</a>
-			<a class="nav__mobile-link" href="#for-plumbers" onclick={closeMenu}>For Plumbers</a>
-			<a class="nav__mobile-link" href="#benefits" onclick={closeMenu}>Benefits</a>
-			<a class="nav__mobile-link" href="#faq" onclick={closeMenu}>FAQ</a>
+		<div id="nav-mobile-panel" class="nav__mobile md-hide-panel">
+			<nav class="nav__mobile-nav">
+				{#each [['benefits','Benefits'],['services','Services'],['for-plumbers','For Plumbers'],['faq','FAQ']] as [id, label]}
+					<a
+						class="nav__mobile-link"
+						class:nav__mobile-link--active={activeSection === id}
+						href="#{id}"
+						onclick={() => { setActive(id); closeMenu(); }}
+					>
+						{label}
+						{#if activeSection === id}
+							<span class="nav__mobile-dot" aria-hidden="true"></span>
+						{/if}
+					</a>
+				{/each}
+			</nav>
+
+			<hr class="nav__mobile-rule" />
+
 			{#if isAuthenticated}
 				<p class="nav__mobile-user">{session.user?.email ?? ''}</p>
-				<button
-					type="button"
-					class="nav__mobile-link nav__mobile-link--btn"
-					disabled={logoutBusy}
-					onclick={onLogout}
-				>
+				<button type="button" class="nav__mobile-link nav__mobile-link--btn" disabled={logoutBusy} onclick={onLogout}>
 					Log out
 				</button>
 				{#if canLogoutEverywhere}
-					<button
-						type="button"
-						class="nav__mobile-link nav__mobile-link--btn nav__mobile-link--muted"
-						disabled={logoutBusy}
-						onclick={onLogoutEverywhere}
-					>
+					<button type="button" class="nav__mobile-link nav__mobile-link--btn nav__mobile-link--muted" disabled={logoutBusy} onclick={onLogoutEverywhere}>
 						Log out everywhere
 					</button>
 				{/if}
 			{:else}
 				<a class="nav__mobile-link" href={`${base}/login`} onclick={closeMenu}>Log in</a>
 			{/if}
-			<a class="nav__mobile-link" href={`${base}/register/plumber`} onclick={closeMenu}>Join as Plumber</a>
-			<a class="nav__mobile-cta lp-btn lp-btn--primary lp-btn--primary-sm" href={`${base}/register`} onclick={closeMenu}
-				>Book Now</a
-			>
+
+			<div class="nav__mobile-actions">
+				<a class="nav__mobile-plumber" href={`${base}/register/plumber`} onclick={closeMenu}>Join as Plumber</a>
+				<a class="nav__mobile-cta lp-btn lp-btn--primary" href={`${base}/register`} onclick={closeMenu}>Book Now</a>
+			</div>
 		</div>
 	{/if}
 </header>
@@ -234,9 +239,15 @@
 	}
 
 	.nav__actions {
-		display: flex;
+		display: none;
 		align-items: center;
 		gap: var(--space-4);
+	}
+
+	@media (min-width: 768px) {
+		.nav__actions {
+			display: flex;
+		}
 	}
 
 	.nav__user {
@@ -355,8 +366,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-		padding: var(--space-4) var(--space-6) var(--space-6);
-		border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
+		padding: var(--space-6);
+		background: var(--color-surface-elevated);
+		border-top: 1px solid var(--color-outline-variant);
+		box-shadow: 0 8px 32px rgba(0,0,0,0.08);
 	}
 
 	.md-hide-panel {
@@ -369,20 +382,52 @@
 		}
 	}
 
+	.nav__mobile-nav {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
 	.nav__mobile-link {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		color: var(--color-text);
 		font-weight: var(--font-weight-medium);
+		font-size: var(--text-base);
 		text-decoration: none;
-		padding: var(--space-2) 0;
+		padding: var(--space-4);
+		border-radius: var(--radius-lg);
+		transition: background 0.15s ease, color 0.15s ease;
 	}
 
 	.nav__mobile-link:hover {
+		background: var(--color-surface-container-low);
 		color: var(--color-primary);
+	}
+
+	.nav__mobile-link--active {
+		background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+		color: var(--color-primary);
+		font-weight: var(--font-weight-bold);
+	}
+
+	.nav__mobile-dot {
+		width: 0.4rem;
+		height: 0.4rem;
+		border-radius: 50%;
+		background: var(--color-primary);
+	}
+
+	.nav__mobile-rule {
+		border: none;
+		border-top: 1px solid var(--color-outline-variant);
+		margin: 0;
 	}
 
 	.nav__mobile-user {
 		margin: 0;
-		padding: var(--space-2) 0 0;
+		padding: var(--space-2) var(--space-4);
 		font-size: 0.8125rem;
 		color: var(--color-text-muted);
 		word-break: break-all;
@@ -405,11 +450,33 @@
 
 	.nav__mobile-link--muted {
 		color: var(--color-text-muted);
-		font-weight: var(--font-weight-medium);
+	}
+
+	.nav__mobile-actions {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		padding-top: var(--space-2);
+	}
+
+	.nav__mobile-plumber {
+		display: block;
+		text-align: center;
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-lg);
+		border: 1.5px solid var(--color-outline-variant);
+		color: var(--color-text);
+		font-weight: var(--font-weight-semibold);
+		text-decoration: none;
+		transition: border-color 0.15s, color 0.15s;
+	}
+
+	.nav__mobile-plumber:hover {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
 	}
 
 	.nav__mobile-cta {
-		margin-top: var(--space-2);
 		text-align: center;
 	}
 </style>

@@ -422,12 +422,18 @@
 		max-width: 32rem;
 	}
 
+	@media (min-width: 1024px) {
+		.panel__inner {
+			max-width: 38rem;
+		}
+	}
+
 	.panel__header {
-		margin-bottom: var(--space-10);
+		margin-bottom: var(--space-2);
 	}
 
 	.panel__title {
-		margin: 0 0 var(--space-3);
+		margin: 0 0;
 		font-size: 1.875rem;
 		font-weight: 800;
 		color: var(--color-text);
@@ -444,8 +450,10 @@
 		background: var(--color-surface-elevated);
 		border-radius: var(--radius-xl);
 		padding: var(--space-6);
-		box-shadow: var(--shadow-ambient);
+		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+		border: 1px solid var(--color-outline-variant);
 	}
+
 
 	.form {
 		display: flex;
