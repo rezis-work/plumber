@@ -1,5 +1,6 @@
 //! Step 8 RBAC: [`crate::require_role!`] and [`crate::require_any_role!`] (from [`middleware_rbac`]) compose with [`require_access_token`] / [`require_authenticated`].
 
+pub mod admin_user_error;
 pub mod auth_context;
 pub mod auth_forbidden;
 pub mod auth_unauthorized;

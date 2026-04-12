@@ -49,6 +49,21 @@ pub fn auth_routes(state: AppState) -> Router<AppState> {
             )),
     );
 
+    let admin_users = Router::new()
+        .route(
+            "/admin/users/{user_id}/block",
+            post(handler::admin_block_user),
+        )
+        .route(
+            "/admin/users/{user_id}/soft-delete",
+            post(handler::admin_soft_delete_user),
+        )
+        .layer(crate::require_role!(Role::Admin))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_access_token,
+        ));
+
     let rbac_staff = Router::new().route(
         "/rbac/staff-check",
         get(handler::rbac_staff_check)
@@ -60,6 +75,7 @@ pub fn auth_routes(state: AppState) -> Router<AppState> {
         .merge(protected)
         .merge(rbac_plumber)
         .merge(rbac_admin)
+        .merge(admin_users)
         .merge(rbac_staff)
 }
 
@@ -120,6 +136,15 @@ mod tests {
     fn bearer_get(uri: &str, token: &str) -> Request<Body> {
         Request::builder()
             .method("GET")
+            .uri(uri)
+            .header(AUTHORIZATION, format!("Bearer {}", token))
+            .body(Body::empty())
+            .unwrap()
+    }
+
+    fn bearer_post(uri: &str, token: &str) -> Request<Body> {
+        Request::builder()
+            .method("POST")
             .uri(uri)
             .header(AUTHORIZATION, format!("Bearer {}", token))
             .body(Body::empty())
@@ -501,5 +526,25 @@ mod tests {
         assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
         let body = res.into_body().collect().await.unwrap().to_bytes();
         assert_unauthorized(&body);
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test admin_block_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn admin_block_unknown_user_returns_404(pool: PgPool) -> sqlx::Result<()> {
+        let state = test_app_state(pool);
+        let token = state
+            .jwt_config
+            .create_access_token(Uuid::new_v4(), Role::Admin)
+            .expect("admin access token");
+        let unknown = Uuid::new_v4();
+        let res = app_with_pool(state)
+            .oneshot(bearer_post(
+                &format!("/auth/admin/users/{unknown}/block"),
+                &token,
+            ))
+            .await
+            .expect("oneshot");
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+        Ok(())
     }
 }

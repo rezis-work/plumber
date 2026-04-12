@@ -70,7 +70,7 @@ Today: `is_active boolean`. Target: **`user_status`** column.
 3. Add `last_login_at`, `blocked_at`, `deleted_at` nullable.  
 4. Drop `is_active` **after** Rust code reads `user_status` (may be a **follow-up PR**: add column first, deploy app, then drop old column).
 
-Indexes: `(role, user_status, created_at DESC)`, `(user_status, created_at DESC)` — use final column name from your migration (`status` vs `user_status`; **pick one** and match Rust `Type`).
+Indexes: `(role, user_status, created_at DESC)`, `(user_status, created_at DESC)` — repo uses column name **`user_status`** (type `user_status`); match Rust `User` field and `sqlx::Type`.
 
 **Status (foundations): done** — migration `20260210120001_users_user_status` (drops `is_active`, adds timestamps + indexes); Rust `User` / `UserStatus` in [`apps/api/src/modules/users/`](../../apps/api/src/modules/users/).
 
@@ -166,7 +166,7 @@ Indexes: (admin_id, created_at DESC), (entity_type, entity_id), (created_at DESC
 
 | Need | How the schema helps |
 |------|----------------------|
-| **Admin** user lists | `users(role, status, created_at)`; soft `deleted_at` |
+| **Admin** user lists | `users(role, user_status, created_at)`; soft `deleted_at` |
 | **Admin** geography & services | Normalized cities/areas/streets + `is_active`; categories + price guides |
 | **Admin** orders | `orders` status, geography FKs, timestamps for filters |
 | **Dispatch** pre-filter | `plumber_profiles` approval + online/available + location freshness + radius; `plumber_services` + `plumber_service_areas` |
@@ -183,7 +183,7 @@ Indexes: (admin_id, created_at DESC), (entity_type, entity_id), (created_at DESC
 ## Part 4 — Recommendations before the next phase
 
 1. **Surrogate `plumber_profiles.id`:** Do it early so you never FK to `user_id` from orders/dispatches.  
-2. **`users.status` vs `is_active`:** Avoid long-term dual sources; migrate app + DB in two deploys if needed.  
+2. **`users.user_status` vs `is_active`:** Avoid long-term dual sources; migrate app + DB in two deploys if needed.  
 3. **`admin_audit_logs.admin_id`:** If NOT NULL, deleting an admin user is awkward—prefer nullable + SET NULL or never delete admin rows.  
 4. **Street uniqueness:** Use **partial unique indexes** for NULL `area_id` (see domain doc).  
 5. **Price guides:** Defer strict UNIQUE (category, city, area) until product defines “one row per scope”; add when admin UI is clear.  

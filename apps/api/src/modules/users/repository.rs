@@ -137,6 +137,51 @@ impl UserRepository {
             .await
     }
 
+    pub async fn touch_last_login_at(&self, user_id: Uuid) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            UPDATE users SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Sets `user_status` to `blocked`. Sets `blocked_at` only when transitioning from a non-blocked status.
+    pub async fn set_user_blocked(&self, user_id: Uuid) -> Result<bool, sqlx::Error> {
+        let r = sqlx::query(
+            r#"
+            UPDATE users SET
+                user_status = 'blocked',
+                blocked_at = CASE
+                    WHEN user_status IS DISTINCT FROM 'blocked' THEN NOW()
+                    ELSE blocked_at
+                END,
+                updated_at = NOW()
+            WHERE id = $1
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(r.rows_affected() > 0)
+    }
+
+    pub async fn soft_delete_user(&self, user_id: Uuid) -> Result<bool, sqlx::Error> {
+        let r = sqlx::query(
+            r#"
+            UPDATE users SET deleted_at = NOW(), updated_at = NOW()
+            WHERE id = $1 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(r.rows_affected() > 0)
+    }
+
     pub async fn mark_email_verified_clear_verification(
         &self,
         user_id: Uuid,
@@ -211,6 +256,11 @@ mod tests {
 
         let by_id = repo.find_by_id(created.id).await?.expect("user by id");
         assert_eq!(by_id.email, "test@example.com");
+
+        assert!(by_id.last_login_at.is_none());
+        repo.touch_last_login_at(created.id).await?;
+        let touched = repo.find_by_id(created.id).await?.expect("user after touch");
+        assert!(touched.last_login_at.is_some());
 
         Ok(())
     }

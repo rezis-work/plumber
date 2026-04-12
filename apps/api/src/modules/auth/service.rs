@@ -7,6 +7,7 @@ use crate::modules::users::{
 };
 use crate::AppState;
 
+use super::admin_user_error::AdminUserError;
 use super::auth_context::AuthContext;
 use super::dto::{
     LoginRequest, LoginResponse, MeResponse, RegisterClientRequest, RegisterClientResponse,
@@ -283,6 +284,12 @@ pub async fn login(state: &AppState, body: LoginRequest) -> Result<LoginSuccess,
         return Err(LoginError::AccountInactive);
     }
 
+    state
+        .users
+        .touch_last_login_at(user.id)
+        .await
+        .map_err(|_| LoginError::Internal)?;
+
     let jti = Uuid::new_v4().to_string();
     let refresh_jwt = state
         .jwt_config
@@ -347,6 +354,18 @@ pub async fn refresh(state: &AppState, raw_refresh_jwt: &str) -> Result<LoginSuc
     let recomputed = hash_refresh_jwt_for_storage(state.jwt_config.refresh_secret(), raw_refresh_jwt)
         .map_err(|_| RefreshError::Internal)?;
     if !refresh_token_hash_hex_eq_constant_time(&row.token_hash, &recomputed) {
+        return Err(RefreshError::Unauthorized);
+    }
+
+    let user = state
+        .users
+        .find_by_id(ctx.user_id)
+        .await
+        .map_err(|_| RefreshError::Internal)?;
+    let Some(user) = user else {
+        return Err(RefreshError::Unauthorized);
+    };
+    if !user.login_allowed() {
         return Err(RefreshError::Unauthorized);
     }
 
@@ -457,6 +476,30 @@ pub async fn me_profile(state: &AppState, user_id: Uuid) -> Result<MeResponse, M
         updated_at: user.updated_at,
         profile,
     })
+}
+
+pub async fn admin_block_user(state: &AppState, target_id: Uuid) -> Result<(), AdminUserError> {
+    let ok = state
+        .users
+        .set_user_blocked(target_id)
+        .await
+        .map_err(|_| AdminUserError::Internal)?;
+    if !ok {
+        return Err(AdminUserError::NotFound);
+    }
+    Ok(())
+}
+
+pub async fn admin_soft_delete_user(state: &AppState, target_id: Uuid) -> Result<(), AdminUserError> {
+    let ok = state
+        .users
+        .soft_delete_user(target_id)
+        .await
+        .map_err(|_| AdminUserError::Internal)?;
+    if !ok {
+        return Err(AdminUserError::NotFound);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -627,6 +670,58 @@ mod tests {
             "cookie: {cookie_str}"
         );
         assert!(cookie_str.contains(&state.cookie_config.refresh_cookie_name));
+
+        let u = state
+            .users
+            .find_by_email("login-ok@example.com")
+            .await?
+            .expect("user after login");
+        assert!(u.last_login_at.is_some());
+
+        Ok(())
+    }
+
+    #[ignore = "requires DATABASE_URL (Neon or Postgres); run: cargo test refresh_ -- --ignored"]
+    #[sqlx::test(migrations = "./migrations")]
+    async fn refresh_rejected_when_user_blocked_after_login(pool: PgPool) -> sqlx::Result<()> {
+        use crate::modules::auth::dto::LoginRequest;
+        use crate::modules::auth::refresh_error::RefreshError;
+        use crate::modules::users::Role;
+
+        let state = test_app_state(pool);
+        let ph = hash_password("password123", &state.password_config).unwrap();
+        let user = state
+            .users
+            .create_user(CreateUserParams {
+                email: "refresh-blocked@example.com",
+                password_hash: &ph,
+                role: Role::Client,
+                user_status: UserStatus::Active,
+                is_email_verified: true,
+                email_verification_token_hash: None,
+                email_verification_expires_at: None,
+            })
+            .await?;
+
+        let login_out = login(
+            &state,
+            LoginRequest {
+                email: "refresh-blocked@example.com".to_string(),
+                password: "password123".to_string(),
+            },
+        )
+        .await
+        .expect("login");
+
+        sqlx::query(
+            "UPDATE users SET user_status = 'blocked'::user_status WHERE id = $1",
+        )
+        .bind(user.id)
+        .execute(state.users.pool())
+        .await?;
+
+        let replay = refresh(&state, &login_out.refresh_jwt).await;
+        assert!(matches!(replay, Err(RefreshError::Unauthorized)));
 
         Ok(())
     }

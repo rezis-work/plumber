@@ -75,7 +75,7 @@ Implement as PostgreSQL `CREATE TYPE ... AS ENUM (...)` (or check constraints + 
 | Enum | Values | Used on |
 |------|--------|---------|
 | `user_role` | `client`, `plumber`, `admin` | `users.role` (exists) |
-| `user_status` | `active`, `blocked`, `pending` | `users.status` — **migrate** from `is_active` (see §6.1) |
+| `user_status` | `active`, `blocked`, `pending` | `users.user_status` (column name; type `user_status`) — **migrate** from `is_active` (see §6.1) |
 | `order_urgency` | `normal`, `urgent`, `emergency` | `orders.urgency` |
 | `order_status` | `searching`, `dispatched`, `accepted`, `in_progress`, `completed`, `cancelled`, `expired` | `orders.status` |
 | `dispatch_status` | `sent`, `viewed`, `accepted`, `rejected`, `expired`, `lost_race` | `order_dispatches.status` |
@@ -83,7 +83,7 @@ Implement as PostgreSQL `CREATE TYPE ... AS ENUM (...)` (or check constraints + 
 
 **Note:** `plumber_profiles.is_online` / `is_available` are **booleans** for fast filtering; **history** uses `plumber_status_type` for analytics (you can log transitions when either flag changes).
 
-Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need arbitrary ISO codes.
+Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need arbitrary ISO codes. **Repo:** not implemented yet; add the PostgreSQL type and a matching Rust `sqlx::Type` in the same migration that introduces money columns, if the product locks to those three codes only.
 
 ---
 
@@ -93,24 +93,34 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 **Purpose:** Single identity and auth row for all roles.
 
-**Current (repo):** `id`, `email` (CITEXT UNIQUE), `password_hash`, `role`, `is_active`, `is_email_verified`, verification token columns, timestamps.
+#### As implemented (repo)
 
-**Target additions / changes:**
+**Columns:** `id`, `email` (CITEXT UNIQUE), `password_hash`, `role`, `user_status`, `last_login_at`, `blocked_at`, `deleted_at`, `is_email_verified`, verification token columns, `created_at`, `updated_at`. (`is_active` removed; see migration `20260210120001_users_user_status`.)
+
+**Indexes:** `(role, user_status, created_at DESC)`, `(user_status, created_at DESC)`; UNIQUE on `email`.
+
+**Runtime behavior:**
+
+- Successful **password login** updates `last_login_at` (and `updated_at`).
+- **Refresh** re-loads the user and rejects the rotation if `login_allowed()` is false (non-active `user_status` or `deleted_at` set).
+- **Admin** (Bearer access JWT, `role = admin`): `POST /auth/admin/users/{user_id}/block` sets `user_status = blocked` and sets `blocked_at` only when transitioning from a non-blocked status; `POST /auth/admin/users/{user_id}/soft-delete` sets `deleted_at` (idempotent no-op if already deleted). Both return `403` if `user_id` is the caller’s own id.
+
+#### Reference shape (columns)
 
 | Column | Type | Notes |
 |--------|------|--------|
-| `status` | `user_status` NOT NULL | **Migration:** map `is_active = true` → `active`, `false` → `blocked`; new signups → `pending` if email unverified. Then **drop** `is_active` or keep synced via trigger (prefer drop for single source of truth). |
-| `last_login_at` | `TIMESTAMPTZ` NULL | |
-| `blocked_at` | `TIMESTAMPTZ` NULL | Set when status → `blocked`. |
-| `deleted_at` | `TIMESTAMPTZ` NULL | Soft delete; hide from login, retain FK history. |
+| `user_status` | `user_status` NOT NULL | Migrated from `is_active` (`true` → `active`, `false` → `blocked`). |
+| `last_login_at` | `TIMESTAMPTZ` NULL | Updated on successful password login. |
+| `blocked_at` | `TIMESTAMPTZ` NULL | Set when `user_status` becomes `blocked` (backfill + admin block). |
+| `deleted_at` | `TIMESTAMPTZ` NULL | Soft delete; hides from login / refresh; admin soft-delete route. |
 
 **Constraints:** `email` UNIQUE (existing). Consider partial unique index on `lower(email)` if you drop `citext` (keep `citext` as today).
 
-**Indexes:**
+#### Follow-ups (product / later)
 
-- `(role, status, created_at DESC)` — admin user lists and filters.
-- `(status, created_at DESC)` — support queues.
-- Existing UNIQUE on `email`.
+- **New client signups → `pending` until email verified:** not the current default (registrations use `active`); would require tightening login/refresh for unverified clients.
+- **Richer admin UX:** list/filter users, unblock, clear `deleted_at`, audit logs.
+- **Refresh as “activity”:** optional update of `last_login_at` on refresh (not implemented; field name suggests login only).
 
 ---
 
@@ -444,7 +454,7 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 1. Create new **enums** (`user_status`, `order_*`, `dispatch_status`, `plumber_status_type`) without breaking existing `user_role`.
 2. Add **`cities`, `areas`, `streets`**, **`service_categories`** (empty or seed).
 3. **`plumber_profiles`**: add surrogate `id`, backfill, add new columns; migrate FKs from `user_id` to `id` on new tables only.
-4. **`users`**: add `status`, backfill from `is_active`; add `last_login_at`, `blocked_at`, `deleted_at`.
+4. **`users`**: add `user_status`, backfill from `is_active`; add `last_login_at`, `blocked_at`, `deleted_at`.
 5. **`client_profiles`**.
 6. **`service_price_guides`**, **`plumber_services`**, **`plumber_service_areas`**, **`plumber_status_history`**.
 7. **`orders`**, **`order_dispatches`**, **`reviews`**, **`admin_audit_logs`**.
@@ -463,7 +473,7 @@ Optional: `currency` enum restricted to `{ GEL, USD, EUR }` if you never need ar
 
 ### Admin and analytics
 
-- User lists: **`users (role, status, created_at)`**.
+- User lists: **`users (role, user_status, created_at)`**.
 - Geography CRUD: hierarchical tables + **`is_active`**.
 - Orders: filters on **`status`, `city_id`, `service_category_id`, `requested_at`**.
 - Dispatch funnel: **`order_dispatches`** grouped by **`status`** and time.
@@ -499,7 +509,7 @@ Do **not** seed fake orders in production migrations; use dev-only seeds or fixt
 
 ## 12. Verification checklist (schema phase)
 
-- [ ] All enums created; **user** `status` migrated from `is_active` without losing data.
+- [ ] All enums created; **user** `user_status` migrated from `is_active` without losing data.
 - [ ] **`plumber_profiles.id`** backfilled and all new plumber FKs use it.
 - [ ] Geography uniqueness rules enforced (especially **streets** with NULL `area_id`).
 - [ ] **`orders`** enforce non-null **lat/lng**; **price guide** `min <= max`.
@@ -523,7 +533,7 @@ Exact state machine is application-defined; the **columns** above are sufficient
 
 After migrations, update Rust models and handlers to:
 
-- Read/write **`users.status`** instead of only `is_active`.
+- Read/write **`users.user_status`** instead of `is_active`.
 - Use **`plumber_profiles.id`** for any new join tables.
 - Keep **email verification** columns as today until a dedicated cleanup migration merges them with **`user_status.pending`**.
 

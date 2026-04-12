@@ -1,11 +1,17 @@
 use axum::http::header::{self, HeaderValue};
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 use serde_json::json;
+use uuid::Uuid;
 
 use crate::AppState;
 
+use super::admin_user_error::AdminUserError;
 use super::auth_user::AuthUser;
 use super::dto::{
     LoginRequest, LogoutAllResponse, MeResponse, RegisterClientRequest, RegisterClientResponse,
@@ -143,6 +149,30 @@ pub async fn me(
 ) -> Result<Json<MeResponse>, MeError> {
     let body = service::me_profile(&state, ctx.user_id).await?;
     Ok(Json(body))
+}
+
+pub async fn admin_block_user(
+    State(state): State<AppState>,
+    AuthUser(ctx): AuthUser,
+    Path(target_id): Path<Uuid>,
+) -> Result<StatusCode, AdminUserError> {
+    if target_id == ctx.user_id {
+        return Err(AdminUserError::Forbidden);
+    }
+    service::admin_block_user(&state, target_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn admin_soft_delete_user(
+    State(state): State<AppState>,
+    AuthUser(ctx): AuthUser,
+    Path(target_id): Path<Uuid>,
+) -> Result<StatusCode, AdminUserError> {
+    if target_id == ctx.user_id {
+        return Err(AdminUserError::Forbidden);
+    }
+    service::admin_soft_delete_user(&state, target_id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// Step 8 RBAC verification stub; replace with a real plumber-only route when domains land.
