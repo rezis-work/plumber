@@ -1,5 +1,9 @@
 pub mod modules;
 
+use modules::geography::GeographyRepository;
+use modules::orders::OrderRepository;
+use modules::service_categories::ServiceCategoryRepository;
+
 pub use modules::auth::{
     hash_password, hash_refresh_jwt_for_storage, normalize_email, validate_password_policy,
     verify_password, AuthContext, AuthError, AuthJwtClaims, CookieConfig, EmailVerificationConfig,
@@ -16,6 +20,9 @@ use sqlx::PgPool;
 pub struct AppState {
     pub pool: PgPool,
     pub users: UserRepository,
+    pub orders: OrderRepository,
+    pub geography: GeographyRepository,
+    pub service_categories: ServiceCategoryRepository,
     pub password_config: PasswordConfig,
     pub email_verification: EmailVerificationConfig,
     pub jwt_config: JwtConfig,

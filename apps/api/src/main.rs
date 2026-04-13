@@ -2,8 +2,12 @@ use std::time::Duration;
 
 use api::modules::auth::auth_routes;
 use api::modules::auth::{CookieConfig, EmailVerificationConfig, JwtConfig, PasswordConfig};
-use api::AppState;
+use api::modules::geography::GeographyRepository;
+use api::modules::orders::orders_routes;
+use api::modules::orders::OrderRepository;
+use api::modules::service_categories::ServiceCategoryRepository;
 use api::modules::users::{RefreshTokenRepository, UserRepository};
+use api::AppState;
 use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
 use axum::http::{HeaderValue, Method};
 use axum::{routing::get, Router};
@@ -56,6 +60,9 @@ async fn main() {
     let state = AppState {
         pool: pool.clone(),
         users: UserRepository::new(pool.clone()),
+        orders: OrderRepository::new(pool.clone()),
+        geography: GeographyRepository::new(pool.clone()),
+        service_categories: ServiceCategoryRepository::new(pool.clone()),
         refresh_tokens: RefreshTokenRepository::new(pool.clone()),
         password_config: PasswordConfig::from_env(),
         email_verification: EmailVerificationConfig::from_env(),
@@ -66,6 +73,7 @@ async fn main() {
     let mut app = Router::new()
         .route("/health", get(health))
         .nest("/auth", auth_routes(state.clone()))
+        .nest("/orders", orders_routes(state.clone()))
         .with_state(state);
 
     if let Some(cors) = cors_layer_from_env() {

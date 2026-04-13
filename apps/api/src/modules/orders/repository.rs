@@ -1,5 +1,5 @@
 use rust_decimal::Decimal;
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::modules::domain_enums::OrderUrgency;
@@ -7,6 +7,14 @@ use crate::modules::domain_enums::OrderUrgency;
 use super::model::Order;
 
 const MAX_LIST_LIMIT: i64 = 100;
+
+#[derive(Debug, Clone)]
+pub struct OrderMediaInsert<'a> {
+    pub storage_key: &'a str,
+    pub content_type: &'a str,
+    pub byte_size: i32,
+    pub sort_order: i16,
+}
 
 #[derive(Clone)]
 pub struct OrderRepository {
@@ -64,9 +72,9 @@ impl OrderRepository {
         .await
     }
 
-    /// New order: DB defaults apply to `status` (`searching`), `requested_at`, timestamps on create.
-    pub async fn insert(
-        &self,
+    /// Insert order inside an open transaction (e.g. with `order_media` in the same txn).
+    pub async fn insert_tx(
+        tx: &mut Transaction<'_, Postgres>,
         client_id: Uuid,
         service_category_id: Uuid,
         city_id: Uuid,
@@ -107,7 +115,30 @@ impl OrderRepository {
         .bind(urgency)
         .bind(estimated_price_min)
         .bind(estimated_price_max)
-        .fetch_one(&self.pool)
+        .fetch_one(&mut **tx)
         .await
+    }
+
+    pub async fn insert_media_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        order_id: Uuid,
+        items: &[OrderMediaInsert<'_>],
+    ) -> Result<(), sqlx::Error> {
+        for item in items {
+            sqlx::query(
+                r#"
+                INSERT INTO order_media (order_id, storage_key, content_type, byte_size, sort_order)
+                VALUES ($1, $2, $3, $4, $5)
+                "#,
+            )
+            .bind(order_id)
+            .bind(item.storage_key)
+            .bind(item.content_type)
+            .bind(item.byte_size)
+            .bind(item.sort_order)
+            .execute(&mut **tx)
+            .await?;
+        }
+        Ok(())
     }
 }

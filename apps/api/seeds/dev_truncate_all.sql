@@ -27,5 +27,3 @@ TRUNCATE TABLE
     cities,
     service_categories
 RESTART IDENTITY;
-
-COMMIT;

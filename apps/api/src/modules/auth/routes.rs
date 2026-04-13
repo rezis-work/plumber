@@ -95,6 +95,9 @@ mod tests {
     use crate::modules::auth::passwords::PasswordConfig;
     use crate::modules::auth::service_token::JwtConfig;
     use crate::modules::auth::verification::EmailVerificationConfig;
+    use crate::modules::geography::GeographyRepository;
+    use crate::modules::orders::OrderRepository;
+    use crate::modules::service_categories::ServiceCategoryRepository;
     use crate::modules::users::{RefreshTokenRepository, Role, UserRepository};
     use crate::AppState;
 
@@ -106,6 +109,9 @@ mod tests {
         AppState {
             pool: pool.clone(),
             users: UserRepository::new(pool.clone()),
+            orders: OrderRepository::new(pool.clone()),
+            geography: GeographyRepository::new(pool.clone()),
+            service_categories: ServiceCategoryRepository::new(pool.clone()),
             refresh_tokens: RefreshTokenRepository::new(pool.clone()),
             password_config: PasswordConfig::from_env(),
             email_verification: EmailVerificationConfig::from_env(),
@@ -155,6 +161,9 @@ mod tests {
         AppState {
             pool: pool.clone(),
             users: UserRepository::new(pool.clone()),
+            orders: OrderRepository::new(pool.clone()),
+            geography: GeographyRepository::new(pool.clone()),
+            service_categories: ServiceCategoryRepository::new(pool.clone()),
             refresh_tokens: RefreshTokenRepository::new(pool.clone()),
             password_config: PasswordConfig::from_env(),
             email_verification: EmailVerificationConfig {

@@ -3,10 +3,10 @@
 
 #![allow(dead_code)]
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::Type;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Type, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Type, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "order_urgency", rename_all = "lowercase")]
 pub enum OrderUrgency {

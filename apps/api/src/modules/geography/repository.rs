@@ -78,6 +78,19 @@ impl GeographyRepository {
         .await
     }
 
+    pub async fn find_area_by_id(&self, id: Uuid) -> Result<Option<Area>, sqlx::Error> {
+        sqlx::query_as::<_, Area>(
+            r#"
+            SELECT id, city_id, name, slug, is_active, created_at, updated_at
+            FROM areas
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     pub async fn find_area_by_city_and_slug(
         &self,
         city_id: Uuid,
@@ -124,6 +137,19 @@ impl GeographyRepository {
         .bind(area_id)
         .bind(include_inactive)
         .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn find_street_by_id(&self, id: Uuid) -> Result<Option<Street>, sqlx::Error> {
+        sqlx::query_as::<_, Street>(
+            r#"
+            SELECT id, city_id, area_id, name, slug, is_active, created_at, updated_at
+            FROM streets
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
         .await
     }
 
