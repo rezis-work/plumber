@@ -10,6 +10,8 @@ BEGIN;
 
 TRUNCATE TABLE
     admin_audit_logs,
+    plumber_token_ledger,
+    order_media,
     order_dispatches,
     orders,
     plumber_status_history,

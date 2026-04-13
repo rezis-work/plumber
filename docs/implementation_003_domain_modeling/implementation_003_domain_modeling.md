@@ -648,7 +648,11 @@ Do **not** seed fake orders in production migrations; use dev-only seeds or fixt
 - [ ] **`plumber_profiles.id`** backfilled and all new plumber FKs use it.
 - [ ] Geography uniqueness rules enforced (especially **streets** with NULL `area_id`).
 - [ ] **`orders`** enforce non-null **lat/lng**; **price guide** `min <= max`.
-- [ ] **`order_dispatches`**: UNIQUE **(order_id, plumber_id)**.
+- [ ] **`order_dispatches`**: UNIQUE **(order_id, plumber_id)**; **`offer_round`** ≥ 1 with default **1**; index **(order_id, offer_round)** (migration `20260210120014_od0_dispatch_tokens_platform`).
+- [ ] **`order_media`**: **(order_id, sort_order)** index; **ON DELETE CASCADE** from **orders**.
+- [ ] **`token_ledger_reason`** enum and **`plumber_token_ledger`**: indexes **(plumber_id, created_at DESC)** and partial **(order_id)**; **UNIQUE (idempotency_key)** (multiple NULLs allowed).
+- [ ] **`plumber_profiles.token_balance`**: **NOT NULL DEFAULT 0**, **CHECK (token_balance ≥ 0)**.
+- [ ] **`platform_settings`**: five seeded keys (dispatch TTLs, batch size, emergency min tokens, speed bonus window) — see same migration.
 - [ ] **`reviews`**: UNIQUE **(order_id)**.
 - [ ] Indexes from §6 present for admin/dispatch/analytics paths.
 - [ ] Down migrations or rollback notes documented for each step.
