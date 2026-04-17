@@ -69,11 +69,11 @@ pub async fn create_order(
 
     tx.commit().await?;
 
-    tracing::info!(
-        target = "orders",
-        order_id = %order.id,
-        client_id = %client_user_id,
-        "order_created"
+    crate::modules::observability::log_order_transition(
+        order.id,
+        "order_created",
+        None,
+        None,
     );
 
     Ok(CreateOrderResponse {
@@ -291,6 +291,8 @@ mod tests {
             },
             jwt_config: JwtConfig::from_env(),
             cookie_config: CookieConfig::from_env(),
+            redis_dispatch: None,
+            dispatch_advance_secret: None,
         }
     }
 

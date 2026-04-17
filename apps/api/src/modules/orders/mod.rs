@@ -1,7 +1,13 @@
+mod completion_error;
+mod completion_service;
 mod create_order_error;
+mod dispatch_error;
+mod dispatch_handler;
+mod dispatch_service;
 mod dto;
 mod handler;
 mod model;
+mod order_lifecycle_handler;
 mod repository;
 mod routes;
 mod service;

@@ -117,6 +117,8 @@ mod tests {
             email_verification: EmailVerificationConfig::from_env(),
             jwt_config: jwt,
             cookie_config: CookieConfig::from_env(),
+            redis_dispatch: None,
+            dispatch_advance_secret: None,
         }
     }
 
@@ -172,6 +174,8 @@ mod tests {
             },
             jwt_config: JwtConfig::from_env(),
             cookie_config: CookieConfig::from_env(),
+            redis_dispatch: None,
+            dispatch_advance_secret: None,
         }
     }
 

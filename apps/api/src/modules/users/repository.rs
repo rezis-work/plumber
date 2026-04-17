@@ -10,6 +10,7 @@ const PLUMBER_PROFILE_COLUMNS: &str = r#"
     is_online, is_available, current_city_id, current_area_id, current_street_id,
     current_lat, current_lng, service_radius_km, last_location_updated_at,
     rating_avg, rating_count, completed_orders_count, cancelled_orders_count,
+    token_balance,
     created_at, updated_at
 "#;
 

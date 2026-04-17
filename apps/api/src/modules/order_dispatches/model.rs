@@ -9,6 +9,7 @@ pub struct OrderDispatch {
     pub order_id: Uuid,
     pub plumber_id: Uuid,
     pub dispatch_rank: i16,
+    pub offer_round: i16,
     pub status: DispatchStatus,
     pub sent_at: DateTime<Utc>,
     pub responded_at: Option<DateTime<Utc>>,

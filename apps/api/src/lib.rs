@@ -1,5 +1,6 @@
 pub mod modules;
 
+use modules::dispatch_writer::RedisDispatchHelper;
 use modules::geography::GeographyRepository;
 use modules::orders::OrderRepository;
 use modules::service_categories::ServiceCategoryRepository;
@@ -28,4 +29,7 @@ pub struct AppState {
     pub jwt_config: JwtConfig,
     pub refresh_tokens: RefreshTokenRepository,
     pub cookie_config: CookieConfig,
+    pub redis_dispatch: Option<RedisDispatchHelper>,
+    /// When set, `POST /internal/dispatch/advance` is enabled; require header `X-Internal-Secret`.
+    pub dispatch_advance_secret: Option<String>,
 }

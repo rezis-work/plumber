@@ -77,6 +77,7 @@ pub struct PlumberProfile {
     pub rating_count: i32,
     pub completed_orders_count: i32,
     pub cancelled_orders_count: i32,
+    pub token_balance: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

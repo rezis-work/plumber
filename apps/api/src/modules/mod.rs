@@ -1,5 +1,8 @@
 pub mod admin_audit_logs;
 pub mod auth;
+pub mod dispatch_matcher;
+pub mod observability;
+pub mod dispatch_writer;
 pub mod domain_enums;
 pub mod geography;
 pub mod order_dispatches;

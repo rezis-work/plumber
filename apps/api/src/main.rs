@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use api::modules::auth::auth_routes;
 use api::modules::auth::{CookieConfig, EmailVerificationConfig, JwtConfig, PasswordConfig};
+use api::modules::dispatch_writer::{dispatch_writer_routes, RedisDispatchHelper};
 use api::modules::geography::GeographyRepository;
 use api::modules::orders::orders_routes;
 use api::modules::orders::OrderRepository;
@@ -10,12 +11,26 @@ use api::modules::users::{RefreshTokenRepository, UserRepository};
 use api::AppState;
 use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
 use axum::http::{HeaderValue, Method};
+use axum::response::IntoResponse;
 use axum::{routing::get, Router};
+
+use api::modules::observability;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
 async fn health() -> &'static str {
     "ok"
+}
+
+/// Prometheus scrape endpoint; restrict exposure in production (firewall / internal network).
+async fn metrics() -> impl IntoResponse {
+    (
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "text/plain; version=0.0.4; charset=utf-8",
+        )],
+        observability::metrics_render(),
+    )
 }
 
 /// When `CORS_ALLOWED_ORIGINS` is set (comma-separated), enable credentialed CORS for browser clients.
@@ -39,9 +54,38 @@ fn cors_layer_from_env() -> Option<CorsLayer> {
     )
 }
 
+/// When `DISPATCH_INTERNAL_SECRET` is unset, `cargo run` (debug) uses this so `/internal/dispatch/*` works locally.
+/// Release builds never use this; omit the env var in production to keep those routes disabled (404).
+#[cfg(debug_assertions)]
+const DEBUG_DISPATCH_INTERNAL_SECRET: &str = "your-local-dev-secret";
+
+fn dispatch_advance_secret_from_env() -> Option<String> {
+    if let Some(s) = std::env::var("DISPATCH_INTERNAL_SECRET")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+    {
+        return Some(s);
+    }
+    #[cfg(debug_assertions)]
+    {
+        tracing::warn!(
+            target: "api",
+            "DISPATCH_INTERNAL_SECRET unset; using debug-build default for /internal/dispatch/* (header X-Internal-Secret)"
+        );
+        Some(DEBUG_DISPATCH_INTERNAL_SECRET.to_string())
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        None
+    }
+}
+
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
+
+    observability::init_tracing();
+    observability::init_metrics();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
@@ -57,6 +101,9 @@ async fn main() {
         .await
         .expect("failed to run migrations");
 
+    let redis_dispatch = RedisDispatchHelper::from_env();
+    let dispatch_advance_secret = dispatch_advance_secret_from_env();
+
     let state = AppState {
         pool: pool.clone(),
         users: UserRepository::new(pool.clone()),
@@ -68,12 +115,16 @@ async fn main() {
         email_verification: EmailVerificationConfig::from_env(),
         jwt_config: JwtConfig::from_env(),
         cookie_config: CookieConfig::from_env(),
+        redis_dispatch,
+        dispatch_advance_secret,
     };
 
     let mut app = Router::new()
         .route("/health", get(health))
+        .route("/metrics", get(metrics))
         .nest("/auth", auth_routes(state.clone()))
         .nest("/orders", orders_routes(state.clone()))
+        .nest("/internal/dispatch", dispatch_writer_routes())
         .with_state(state);
 
     if let Some(cors) = cors_layer_from_env() {

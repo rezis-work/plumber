@@ -1,0 +1,12 @@
+{
+  "service_category_id": "a0000001-0000-4000-8000-000000000004",
+  "city_id": "a0000001-0000-4000-8000-000000000001",
+  "area_id": "a0000001-0000-4000-8000-000000000002",
+  "street_id": "a0000001-0000-4000-8000-000000000003",
+  "address_line": "1 Demo Street (dispatch matcher seed)",
+  "lat": 41.7155,
+  "lng": 44.7855,
+  "description": "Leak under kitchen sink — dispatch demo order.",
+  "urgency": "normal",
+  "media": []
+}

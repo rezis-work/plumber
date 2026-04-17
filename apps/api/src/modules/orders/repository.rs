@@ -30,6 +30,44 @@ impl OrderRepository {
         &self.pool
     }
 
+    pub async fn find_by_id_for_update_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        id: Uuid,
+    ) -> Result<Option<Order>, sqlx::Error> {
+        sqlx::query_as::<_, Order>(
+            r#"
+            SELECT id, client_id, assigned_plumber_id, service_category_id, city_id, area_id, street_id,
+                   address_line, lat, lng, description, urgency, status,
+                   estimated_price_min, estimated_price_max, final_price,
+                   requested_at, accepted_at, started_at, completed_at, cancelled_at, cancel_reason,
+                   created_at, updated_at
+            FROM orders
+            WHERE id = $1
+            FOR UPDATE
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&mut **tx)
+        .await
+    }
+
+    pub async fn set_status_dispatched_if_searching_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        id: Uuid,
+    ) -> Result<u64, sqlx::Error> {
+        let r = sqlx::query(
+            r#"
+            UPDATE orders
+            SET status = 'dispatched', updated_at = NOW()
+            WHERE id = $1 AND status = 'searching'
+            "#,
+        )
+        .bind(id)
+        .execute(&mut **tx)
+        .await?;
+        Ok(r.rows_affected())
+    }
+
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Order>, sqlx::Error> {
         sqlx::query_as::<_, Order>(
             r#"

@@ -527,6 +527,8 @@ mod tests {
             },
             jwt_config: JwtConfig::from_env(),
             cookie_config: CookieConfig::from_env(),
+            redis_dispatch: None,
+            dispatch_advance_secret: None,
         }
     }
 
