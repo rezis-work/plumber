@@ -2,7 +2,7 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::modules::dispatch_matcher::{match_plumbers, MatcherConfig, MatcherOrderInput};
+use crate::modules::dispatch_matcher::{match_plumbers, MatchPass, MatcherConfig, MatcherOrderInput};
 use crate::modules::observability;
 use crate::modules::domain_enums::{DispatchStatus, OrderStatus, OrderUrgency};
 use crate::modules::order_dispatches::OrderDispatchRepository;
@@ -21,6 +21,24 @@ pub enum AdvanceDispatchOutcome {
     SkippedNotDispatchable,
     SkippedNoPlumbers,
     SkippedLockNotAcquired,
+}
+
+/// Stable `outcome` string for §12.8 logs (worker + `advance_dispatch_round`).
+pub fn advance_dispatch_outcome_label(outcome: &AdvanceDispatchOutcome) -> &'static str {
+    match outcome {
+        AdvanceDispatchOutcome::Success { .. } => "success",
+        AdvanceDispatchOutcome::SkippedOrderNotFound => "skipped_order_not_found",
+        AdvanceDispatchOutcome::SkippedNotDispatchable => "skipped_not_dispatchable",
+        AdvanceDispatchOutcome::SkippedNoPlumbers => "skipped_no_plumbers",
+        AdvanceDispatchOutcome::SkippedLockNotAcquired => "skipped_lock_not_acquired",
+    }
+}
+
+fn match_pass_label(pass: MatchPass) -> &'static str {
+    match pass {
+        MatchPass::Strict => "strict",
+        MatchPass::CityFallback => "city_fallback",
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -59,11 +77,25 @@ pub async fn advance_dispatch_round(
 
     let Some(order) = OrderRepository::find_by_id_for_update_tx(&mut tx, order_id).await? else {
         tx.commit().await?;
+        tracing::info!(
+            target = "dispatch",
+            %order_id,
+            outcome = "skipped_order_not_found",
+            match_pass = "none",
+            "dispatch_advance_outcome"
+        );
         return Ok(AdvanceDispatchOutcome::SkippedOrderNotFound);
     };
 
     if !is_dispatchable(order.status) {
         tx.commit().await?;
+        tracing::info!(
+            target = "dispatch",
+            %order_id,
+            outcome = "skipped_not_dispatchable",
+            match_pass = "none",
+            "dispatch_advance_outcome"
+        );
         return Ok(AdvanceDispatchOutcome::SkippedNotDispatchable);
     }
 
@@ -74,6 +106,13 @@ pub async fn advance_dispatch_round(
     if let Some(r) = redis {
         if !r.try_acquire_order_lock(order_id).await? {
             tx.rollback().await?;
+            tracing::info!(
+                target = "dispatch",
+                %order_id,
+                outcome = "skipped_lock_not_acquired",
+                match_pass = "none",
+                "dispatch_advance_outcome"
+            );
             return Ok(AdvanceDispatchOutcome::SkippedLockNotAcquired);
         }
         lock_held = true;
@@ -89,7 +128,7 @@ pub async fn advance_dispatch_round(
         urgency: order.urgency,
     };
 
-    let plumbers = match match_plumbers(&mut *tx, &input, matcher_config).await {
+    let (plumbers, match_pass) = match match_plumbers(&mut tx, &input, matcher_config).await {
         Ok(p) => p,
         Err(e) => {
             if lock_held {
@@ -98,6 +137,14 @@ pub async fn advance_dispatch_round(
                 }
             }
             tx.rollback().await?;
+            tracing::error!(
+                target = "dispatch",
+                %order_id,
+                outcome = "error_matcher_sql",
+                match_pass = "none",
+                error = %e,
+                "dispatch_advance_outcome"
+            );
             return Err(AdvanceDispatchError::Sql(e));
         }
     };
@@ -109,10 +156,18 @@ pub async fn advance_dispatch_round(
             }
         }
         tx.commit().await?;
+        tracing::info!(
+            target = "dispatch",
+            %order_id,
+            outcome = "skipped_no_plumbers",
+            match_pass = match_pass_label(match_pass),
+            "dispatch_advance_outcome"
+        );
         return Ok(AdvanceDispatchOutcome::SkippedNoPlumbers);
     }
 
-    let k = matcher_config.batch_size.min(plumbers.len());
+    let candidate_count = plumbers.len();
+    let k = matcher_config.batch_size.min(candidate_count);
     let mut new_dispatch_ids = Vec::with_capacity(k);
 
     for (i, plumber_id) in plumbers.iter().take(k).enumerate() {
@@ -135,6 +190,14 @@ pub async fn advance_dispatch_round(
                     }
                 }
                 tx.rollback().await?;
+                tracing::error!(
+                    target = "dispatch",
+                    %order_id,
+                    outcome = "error_insert_dispatch_sql",
+                    match_pass = match_pass_label(match_pass),
+                    error = %e,
+                    "dispatch_advance_outcome"
+                );
                 return Err(AdvanceDispatchError::Sql(e));
             }
         };
@@ -146,6 +209,17 @@ pub async fn advance_dispatch_round(
     }
 
     tx.commit().await?;
+
+    tracing::info!(
+        target = "dispatch",
+        %order_id,
+        outcome = "success",
+        match_pass = match_pass_label(match_pass),
+        offer_round = next_round,
+        candidate_count,
+        inserted_count = k,
+        "dispatch_advance_outcome"
+    );
 
     if let Some(r) = redis {
         let ttl = offer_ttl_secs(order.urgency, matcher_config);

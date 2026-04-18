@@ -1,6 +1,7 @@
 pub mod admin_audit_logs;
 pub mod auth;
 pub mod dispatch_matcher;
+pub mod dispatch_outbox;
 pub mod observability;
 pub mod dispatch_writer;
 pub mod domain_enums;

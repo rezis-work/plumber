@@ -3,13 +3,25 @@
 
 mod expire_job;
 mod handler;
+mod reconcile;
 mod redis;
 pub mod service;
+mod worker;
 
 pub use expire_job::{run_dispatch_expiry_tick, ExpireTickError, ExpireTickSummary};
-pub use handler::{post_advance, post_expire_due, AdvanceRequest, AdvanceResponse, ExpireDueResponse};
+pub use handler::{
+    post_advance, post_expire_due, post_reconcile_outbox, AdvanceRequest, AdvanceResponse,
+    ExpireDueResponse, ReconcileOutboxResponse,
+};
+pub use reconcile::{reconcile_stale_outbox, ReconcileError, ReconcileSummary};
 pub use redis::{DispatchRedisError, RedisDispatchHelper};
-pub use service::{advance_dispatch_round, AdvanceDispatchError, AdvanceDispatchOutcome};
+pub use service::{
+    advance_dispatch_outcome_label, advance_dispatch_round, AdvanceDispatchError,
+    AdvanceDispatchOutcome,
+};
+pub use worker::{
+    dispatch_queue_worker_concurrency, dispatch_queue_worker_enabled, run_dispatch_queue_worker,
+};
 
 use axum::routing::post;
 use axum::Router;
@@ -20,6 +32,7 @@ pub fn dispatch_writer_routes() -> Router<AppState> {
     Router::new()
         .route("/advance", post(post_advance))
         .route("/expire-due", post(post_expire_due))
+        .route("/reconcile-outbox", post(post_reconcile_outbox))
 }
 
 #[cfg(test)]
@@ -294,5 +307,72 @@ mod tests {
             .await
             .expect("advance");
         assert_eq!(out, AdvanceDispatchOutcome::SkippedOrderNotFound);
+    }
+
+    /// §12.1: `dispatch_outbox` partial unique + FK cascade from `orders`.
+    #[sqlx::test(migrations = "./migrations")]
+    async fn dispatch_outbox_partial_unique_and_order_cascade(pool: PgPool) {
+        let (city_id, area_id, cat_id) = seed_city_area_category(&pool).await;
+        let order_id = insert_searching_order(&pool, city_id, area_id, cat_id).await;
+
+        sqlx::query(
+            r#"INSERT INTO dispatch_outbox (order_id, job_kind, status)
+               VALUES ($1, 'bootstrap_first_round', 'pending')"#,
+        )
+        .bind(order_id)
+        .execute(&pool)
+        .await
+        .expect("first pending insert");
+
+        let err = sqlx::query(
+            r#"INSERT INTO dispatch_outbox (order_id, job_kind, status)
+               VALUES ($1, 'bootstrap_first_round', 'pending')"#,
+        )
+        .bind(order_id)
+        .execute(&pool)
+        .await
+        .expect_err("second pending same order+kind should violate unique index");
+
+        let sqlx::Error::Database(db) = &err else {
+            panic!("expected database error: {err:?}");
+        };
+        assert_eq!(db.code().as_deref(), Some("23505"), "{db:?}");
+
+        sqlx::query(
+            r#"UPDATE dispatch_outbox SET status = 'done' WHERE order_id = $1 AND status = 'pending'"#,
+        )
+        .bind(order_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            r#"INSERT INTO dispatch_outbox (order_id, job_kind, status)
+               VALUES ($1, 'bootstrap_first_round', 'pending')"#,
+        )
+        .bind(order_id)
+        .execute(&pool)
+        .await
+        .expect("pending again after done should succeed");
+
+        let before: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM dispatch_outbox WHERE order_id = $1"#)
+            .bind(order_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(before, 2);
+
+        sqlx::query(r#"DELETE FROM orders WHERE id = $1"#)
+            .bind(order_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let after: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM dispatch_outbox WHERE order_id = $1"#)
+            .bind(order_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(after, 0);
     }
 }

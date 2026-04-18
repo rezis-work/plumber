@@ -1,5 +1,6 @@
 //! Dispatch matcher (OD-2): eligible plumbers for an order — SQL hard filters + deterministic Rust ranking.
 //! See `docs/implementation_003_domain_modeling/implementation_003_orders_dispatch_tokens_redis.md` §5.
+//! City-wide fallback: `docs/implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md` §4.3.
 
 mod candidate;
 mod config;
@@ -12,19 +13,30 @@ pub use config::MatcherConfig;
 pub use input::MatcherOrderInput;
 pub use rank::rank_and_take_top;
 
-use sqlx::{Executor, Postgres};
+use std::ops::DerefMut;
+
+use sqlx::postgres::Postgres;
+use sqlx::Transaction;
 use uuid::Uuid;
 
-pub async fn match_plumbers<'c, E>(
-    executor: E,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MatchPass {
+    Strict,
+    CityFallback,
+}
+
+/// Strict SQL first; if no candidates, city-wide fallback (same ranking, Implementation 004 §4.3).
+pub async fn match_plumbers(
+    tx: &mut Transaction<'_, Postgres>,
     input: &MatcherOrderInput,
     config: &MatcherConfig,
-) -> Result<Vec<Uuid>, sqlx::Error>
-where
-    E: Executor<'c, Database = Postgres>,
-{
-    let candidates = query::fetch_candidates(executor, input, config).await?;
-    Ok(rank_and_take_top(candidates, config))
+) -> Result<(Vec<Uuid>, MatchPass), sqlx::Error> {
+    let strict = query::fetch_candidates_strict(tx.deref_mut(), input, config).await?;
+    if !strict.is_empty() {
+        return Ok((rank_and_take_top(strict, config), MatchPass::Strict));
+    }
+    let fb = query::fetch_candidates_city_fallback(tx.deref_mut(), input, config).await?;
+    Ok((rank_and_take_top(fb, config), MatchPass::CityFallback))
 }
 
 #[cfg(test)]
@@ -35,7 +47,7 @@ mod integration_tests {
 
     use crate::modules::domain_enums::{OrderStatus, OrderUrgency};
     use crate::modules::order_dispatches::OrderDispatchRepository;
-    use super::{match_plumbers, MatcherConfig, MatcherOrderInput};
+    use super::{match_plumbers, MatchPass, MatcherConfig, MatcherOrderInput};
 
     async fn seed_geography_and_category(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
         let city_id: Uuid = sqlx::query_scalar(
@@ -203,6 +215,17 @@ mod integration_tests {
         .unwrap()
     }
 
+    async fn run_match(
+        pool: &PgPool,
+        input: &MatcherOrderInput,
+        config: &MatcherConfig,
+    ) -> (Vec<Uuid>, MatchPass) {
+        let mut tx = pool.begin().await.unwrap();
+        let out = match_plumbers(&mut tx, input, config).await.unwrap();
+        tx.rollback().await.unwrap();
+        out
+    }
+
     #[sqlx::test(migrations = "./migrations")]
     async fn matcher_excludes_already_dispatched_plumber(pool: PgPool) {
         let (city_id, area_id, cat_id) = seed_geography_and_category(&pool).await;
@@ -231,7 +254,8 @@ mod integration_tests {
             urgency: OrderUrgency::Normal,
         };
         let config = MatcherConfig::default();
-        let matched = match_plumbers(&pool, &input, &config).await.unwrap();
+        let (matched, pass) = run_match(&pool, &input, &config).await;
+        assert_eq!(pass, MatchPass::Strict);
         assert_eq!(matched, vec![p_b]);
     }
 
@@ -259,7 +283,8 @@ mod integration_tests {
             urgency: OrderUrgency::Emergency,
         };
         let config = MatcherConfig::default();
-        let matched = match_plumbers(&pool, &input, &config).await.unwrap();
+        let (matched, pass) = run_match(&pool, &input, &config).await;
+        assert_eq!(pass, MatchPass::Strict);
         assert_eq!(matched, vec![p_ok]);
     }
 
@@ -293,10 +318,9 @@ mod integration_tests {
             lng: 44.8,
             urgency: OrderUrgency::Normal,
         };
-        let matched = match_plumbers(&pool, &input, &MatcherConfig::default())
-            .await
-            .unwrap();
-        assert!(matched.is_empty());
+        let (matched, pass) = run_match(&pool, &input, &MatcherConfig::default()).await;
+        assert_eq!(pass, MatchPass::CityFallback);
+        assert_eq!(matched, vec![p]);
     }
 
     #[sqlx::test(migrations = "./migrations")]
@@ -319,9 +343,82 @@ mod integration_tests {
             lng: 44.8,
             urgency: OrderUrgency::Normal,
         };
-        let matched = match_plumbers(&pool, &input, &MatcherConfig::default())
-            .await
-            .unwrap();
+        let (matched, pass) = run_match(&pool, &input, &MatcherConfig::default()).await;
+        assert_eq!(pass, MatchPass::Strict);
         assert_eq!(matched, vec![p]);
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    async fn matcher_city_fallback_when_strict_empty_far_plumber(pool: PgPool) {
+        let (city_id, area_id, cat_id) = seed_geography_and_category(&pool).await;
+        let u = insert_plumber_user(&pool, "dm-far-fallback@test.local").await;
+        let p = insert_plumber_profile(&pool, u, 20, 50.0, 50.0).await;
+        link_service_and_area(&pool, p, cat_id, city_id, None).await;
+        sqlx::query(
+            r#"UPDATE plumber_profiles SET current_city_id = $1 WHERE id = $2"#,
+        )
+        .bind(city_id)
+        .bind(p)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let order_id =
+            insert_client_and_order(&pool, city_id, Some(area_id), cat_id, OrderUrgency::Normal)
+                .await;
+
+        let input = MatcherOrderInput {
+            order_id,
+            service_category_id: cat_id,
+            city_id,
+            area_id: Some(area_id),
+            lat: 41.7,
+            lng: 44.8,
+            urgency: OrderUrgency::Normal,
+        };
+        let (matched, pass) = run_match(&pool, &input, &MatcherConfig::default()).await;
+        assert_eq!(pass, MatchPass::CityFallback);
+        assert_eq!(matched, vec![p]);
+    }
+
+    #[sqlx::test(migrations = "./migrations")]
+    async fn matcher_city_fallback_empty_plumber_other_city(pool: PgPool) {
+        let (tbilisi_id, area_vake, cat_id) = seed_geography_and_category(&pool).await;
+        let batumi_id: Uuid = sqlx::query_scalar(
+            r#"
+            INSERT INTO cities (name, slug, is_active)
+            VALUES ('Batumi', 'dm-batumi-fb-empty', true)
+            RETURNING id
+            "#,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        let u = insert_plumber_user(&pool, "dm-batumi-only@test.local").await;
+        let p = insert_plumber_profile(&pool, u, 20, 41.7, 44.8).await;
+        link_service_and_area(&pool, p, cat_id, batumi_id, None).await;
+
+        let order_id = insert_client_and_order(
+            &pool,
+            tbilisi_id,
+            Some(area_vake),
+            cat_id,
+            OrderUrgency::Normal,
+        )
+        .await;
+
+        let input = MatcherOrderInput {
+            order_id,
+            service_category_id: cat_id,
+            city_id: tbilisi_id,
+            area_id: Some(area_vake),
+            lat: 41.7,
+            lng: 44.8,
+            urgency: OrderUrgency::Normal,
+        };
+        let (matched, pass) = run_match(&pool, &input, &MatcherConfig::default()).await;
+        assert_eq!(pass, MatchPass::CityFallback);
+        assert!(matched.is_empty());
     }
 }

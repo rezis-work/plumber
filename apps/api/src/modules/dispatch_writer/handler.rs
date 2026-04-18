@@ -8,6 +8,7 @@ use crate::modules::dispatch_matcher::MatcherConfig;
 use crate::AppState;
 
 use super::expire_job::run_dispatch_expiry_tick;
+use super::reconcile::reconcile_stale_outbox;
 use super::service::{advance_dispatch_round, AdvanceDispatchOutcome};
 
 fn constant_time_secret_eq(got: &str, expected: &str) -> bool {
@@ -125,6 +126,20 @@ pub struct ExpireDueResponse {
     pub rounds_checked: usize,
     pub orders_advanced: usize,
     pub orders_expired: usize,
+    pub reconcile_requeued_leases: u64,
+    pub reconcile_failed_max_attempts: u64,
+    pub reconcile_orphans_found: usize,
+    pub reconcile_rpush_ok: usize,
+    pub reconcile_advance_direct: usize,
+}
+
+#[derive(Serialize)]
+pub struct ReconcileOutboxResponse {
+    pub requeued_leases: u64,
+    pub failed_max_attempts: u64,
+    pub orphans_found: usize,
+    pub rpush_ok: usize,
+    pub advance_direct: usize,
 }
 
 /// OD-5: expire overdue offers, advance rounds, expire orders when no plumbers remain.
@@ -163,6 +178,52 @@ pub async fn post_expire_due(
             rounds_checked: summary.rounds_checked,
             orders_advanced: summary.orders_advanced,
             orders_expired: summary.orders_expired,
+            reconcile_requeued_leases: summary.reconcile_requeued_leases,
+            reconcile_failed_max_attempts: summary.reconcile_failed_max_attempts,
+            reconcile_orphans_found: summary.reconcile_orphans_found,
+            reconcile_rpush_ok: summary.reconcile_rpush_ok,
+            reconcile_advance_direct: summary.reconcile_advance_direct,
+        }),
+    ))
+}
+
+/// Implementation 004 §12.6: reclaim expired outbox leases + wake or advance orphan bootstrap orders.
+/// Same auth as [`post_expire_due`].
+pub async fn post_reconcile_outbox(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<(StatusCode, Json<ReconcileOutboxResponse>), StatusCode> {
+    let Some(expected) = state.dispatch_advance_secret.as_ref() else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+    let ok = headers
+        .get(axum::http::header::HeaderName::from_static("x-internal-secret"))
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| constant_time_secret_eq(v, expected));
+    if !ok {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let matcher_config = MatcherConfig::default();
+    let summary = reconcile_stale_outbox(
+        &state.pool,
+        state.redis_dispatch.as_ref(),
+        &matcher_config,
+    )
+    .await
+    .map_err(|e| {
+        tracing::error!("reconcile_stale_outbox: {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok((
+        StatusCode::OK,
+        Json(ReconcileOutboxResponse {
+            requeued_leases: summary.requeued_leases,
+            failed_max_attempts: summary.failed_max_attempts,
+            orphans_found: summary.orphans_found,
+            rpush_ok: summary.rpush_ok,
+            advance_direct: summary.advance_direct,
         }),
     ))
 }

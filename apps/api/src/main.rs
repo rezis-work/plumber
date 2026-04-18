@@ -1,8 +1,13 @@
 use std::time::Duration;
 
 use api::modules::auth::auth_routes;
+use api::modules::dispatch_matcher::MatcherConfig;
 use api::modules::auth::{CookieConfig, EmailVerificationConfig, JwtConfig, PasswordConfig};
-use api::modules::dispatch_writer::{dispatch_writer_routes, RedisDispatchHelper};
+use api::modules::dispatch_writer::{
+    dispatch_queue_worker_concurrency, dispatch_queue_worker_enabled, dispatch_writer_routes,
+    run_dispatch_queue_worker, RedisDispatchHelper,
+};
+use tokio::sync::watch;
 use api::modules::geography::GeographyRepository;
 use api::modules::orders::orders_routes;
 use api::modules::orders::OrderRepository;
@@ -119,6 +124,34 @@ async fn main() {
         dispatch_advance_secret,
     };
 
+    let (worker_joins, shutdown_tx) = if dispatch_queue_worker_enabled() {
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        let n = dispatch_queue_worker_concurrency();
+        tracing::info!(
+            target = "dispatch",
+            worker_concurrency = n,
+            "dispatch_queue_workers_spawn"
+        );
+        let mut joins = Vec::with_capacity(n);
+        for _ in 0..n {
+            let pool_worker = pool.clone();
+            let redis_worker = state.redis_dispatch.clone();
+            let rx = shutdown_rx.clone();
+            joins.push(tokio::spawn(async move {
+                run_dispatch_queue_worker(
+                    pool_worker,
+                    redis_worker,
+                    MatcherConfig::default(),
+                    rx,
+                )
+                .await;
+            }));
+        }
+        (Some(joins), Some(shutdown_tx))
+    } else {
+        (None, None)
+    };
+
     let mut app = Router::new()
         .route("/health", get(health))
         .route("/metrics", get(metrics))
@@ -137,7 +170,23 @@ async fn main() {
 
     println!("API running on http://0.0.0.0:3001");
 
-    axum::serve(listener, app)
-        .await
-        .expect("server failed");
+    let shutdown_tx_for_signal = shutdown_tx.clone();
+    let server = axum::serve(listener, app).with_graceful_shutdown(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to listen for ctrl+c");
+        if let Some(tx) = shutdown_tx_for_signal {
+            tx.send_replace(true);
+        }
+    });
+
+    let server_result = server.await;
+
+    if let Some(joins) = worker_joins {
+        for h in joins {
+            let _ = tokio::time::timeout(Duration::from_secs(30), h).await;
+        }
+    }
+
+    server_result.expect("server failed");
 }

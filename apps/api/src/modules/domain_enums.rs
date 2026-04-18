@@ -1,5 +1,6 @@
 //! PostgreSQL enum mirrors for Implementation 003 §5 (`20260210120000_phase2_domain_enums`).
 //! `orders` — `20260210120011_orders`; `order_dispatches` — `20260210120012_order_dispatches`. `plumber_status_type` — `plumber_status_history` (`20260210120010_plumber_status_history`).
+//! `dispatch_outbox_*` — `20260210120015_dispatch_outbox` (Implementation 004).
 
 #![allow(dead_code)]
 
@@ -48,4 +49,21 @@ pub enum PlumberStatusType {
     Offline,
     Available,
     Unavailable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Type, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[sqlx(type_name = "dispatch_outbox_job_kind", rename_all = "snake_case")]
+pub enum DispatchOutboxJobKind {
+    BootstrapFirstRound,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Type, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[sqlx(type_name = "dispatch_outbox_status", rename_all = "snake_case")]
+pub enum DispatchOutboxStatus {
+    Pending,
+    Processing,
+    Done,
+    Failed,
 }

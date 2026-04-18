@@ -170,6 +170,8 @@ sequenceDiagram
 5. **Distance:** Haversine in query or pre-filter by **bounding box** then sort in app; `distance_km ≤ service_radius_km`.
 6. **Emergency:** `plumber_profiles.token_balance ≥ emergency_min_token_balance`.
 
+**Strict then city-wide (v1):** The matcher runs this **strict** SQL first (including distance `≤ service_radius_km` and area rules where applicable). If that pass returns **no** candidates, the API runs **one** city-wide fallback pass—same category, online/approved, staleness, and exclusions, but relaxed geography per [Implementation 004 §4.3](../implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md#43-city-wide-fallback-when-strict-match-finds-no-one)—without merging the two result sets.
+
 **Ranking score (example):**
 
 \[

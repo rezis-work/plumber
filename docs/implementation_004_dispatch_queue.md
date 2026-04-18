@@ -13,6 +13,7 @@ This feature set adds a **reliable work queue** so a new **`orders`** row in **`
 | Document | Purpose |
 |----------|---------|
 | [implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md](./implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md) | **Read this:** queue shapes, outbox pattern, Redis keys, worker loop, idempotency, reconciliation, rollout phases — **ordered build steps in §12** |
+| [implementation_004_dispatch_queue/PRECONDITIONS_12_0_SIGNOFF.md](./implementation_004_dispatch_queue/PRECONDITIONS_12_0_SIGNOFF.md) | **§12.0 completed audit** — evidence table before §12.1 migration |
 
 **Folder overview:** [implementation_004_dispatch_queue/README.md](./implementation_004_dispatch_queue/README.md)
 

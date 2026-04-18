@@ -25,6 +25,12 @@ pub struct ExpireTickSummary {
     pub rounds_checked: usize,
     pub orders_advanced: usize,
     pub orders_expired: usize,
+    /// From [`super::reconcile::reconcile_stale_outbox`] (Implementation 004 §12.6).
+    pub reconcile_requeued_leases: u64,
+    pub reconcile_failed_max_attempts: u64,
+    pub reconcile_orphans_found: usize,
+    pub reconcile_rpush_ok: usize,
+    pub reconcile_advance_direct: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,6 +39,8 @@ pub enum ExpireTickError {
     Sql(#[from] sqlx::Error),
     #[error(transparent)]
     Advance(#[from] AdvanceDispatchError),
+    #[error(transparent)]
+    Reconcile(#[from] super::reconcile::ReconcileError),
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -181,6 +189,13 @@ pub async fn run_dispatch_expiry_tick(
             | AdvanceDispatchOutcome::SkippedNotDispatchable => {}
         }
     }
+
+    let reconcile = super::reconcile::reconcile_stale_outbox(pool, redis, matcher_config).await?;
+    summary.reconcile_requeued_leases = reconcile.requeued_leases;
+    summary.reconcile_failed_max_attempts = reconcile.failed_max_attempts;
+    summary.reconcile_orphans_found = reconcile.orphans_found;
+    summary.reconcile_rpush_ok = reconcile.rpush_ok;
+    summary.reconcile_advance_direct = reconcile.advance_direct;
 
     Ok(summary)
 }

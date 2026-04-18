@@ -12,6 +12,7 @@ TRUNCATE TABLE
     admin_audit_logs,
     plumber_token_ledger,
     order_media,
+    dispatch_outbox,
     order_dispatches,
     orders,
     plumber_status_history,

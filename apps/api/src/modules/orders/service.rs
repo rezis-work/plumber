@@ -1,6 +1,7 @@
 use sqlx::{Postgres, Transaction};
 use uuid::Uuid;
 
+use crate::modules::dispatch_outbox::DispatchOutboxRepository;
 use crate::modules::geography::{Area, City, Street};
 use crate::modules::service_categories::ServiceCategory;
 use crate::AppState;
@@ -67,6 +68,8 @@ pub async fn create_order(
         OrderRepository::insert_media_tx(&mut tx, order.id, &inserts).await?;
     }
 
+    DispatchOutboxRepository::insert_pending_bootstrap_tx(&mut tx, order.id).await?;
+
     tx.commit().await?;
 
     crate::modules::observability::log_order_transition(
@@ -75,6 +78,18 @@ pub async fn create_order(
         None,
         None,
     );
+
+    if let Some(redis) = state.redis_dispatch.as_ref() {
+        if let Err(e) = redis.rpush_dispatch_queue(order.id).await {
+            crate::modules::observability::record_dispatch_queue_rpush_failure();
+            tracing::warn!(
+                target = "dispatch",
+                error = %e,
+                order_id = %order.id,
+                "dispatch_queue_rpush_failed"
+            );
+        }
+    }
 
     Ok(CreateOrderResponse {
         id: order.id,
@@ -403,6 +418,14 @@ mod tests {
             .await?;
         assert_eq!(m, 0);
 
+        let o: i64 = sqlx::query_scalar(
+            r#"SELECT COUNT(*) FROM dispatch_outbox WHERE order_id = $1 AND status = 'pending'"#,
+        )
+        .bind(res.id)
+        .fetch_one(&pool)
+        .await?;
+        assert_eq!(o, 1);
+
         Ok(())
     }
 
@@ -427,6 +450,14 @@ mod tests {
             .fetch_one(&pool)
             .await?;
         assert_eq!(m, 1);
+
+        let o: i64 = sqlx::query_scalar(
+            r#"SELECT COUNT(*) FROM dispatch_outbox WHERE order_id = $1 AND status = 'pending'"#,
+        )
+        .bind(res.id)
+        .fetch_one(&pool)
+        .await?;
+        assert_eq!(o, 1);
 
         Ok(())
     }

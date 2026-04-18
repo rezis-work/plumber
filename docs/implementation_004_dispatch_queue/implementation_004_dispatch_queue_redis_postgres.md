@@ -163,7 +163,7 @@ If you only **`RPUSH`** without a PG row, you **must** run a **reconciliation cr
 ## 6. Interaction with existing 003 mechanisms
 
 - **`POST /internal/dispatch/advance`:** keep for ops/debug; workers normally use **`advance_dispatch_round`** in-process.
-- **`POST /internal/dispatch/expire-due`:** unchanged; expires offers and advances rounds when appropriate.
+- **`POST /internal/dispatch/expire-due`:** expires offers and advances rounds when appropriate, then runs **§12.6** `reconcile_stale_outbox` (lease reclaim + orphan nudge) at the end of each tick.
 - **Redis order lock** inside `advance_dispatch_round:** still useful when **multiple workers** and **cron** can race; queue reduces duplicate *intent*, lock reduces duplicate *commit*.
 
 ---
@@ -285,7 +285,8 @@ Choose **one** deployment shape first; you can split binaries later.
 **Option A — In-process loop (fastest to ship)**  
 1. On API startup (behind env e.g. **`DISPATCH_QUEUE_WORKER_ENABLED=true`**), spawn a **`tokio::task`** that runs the consumer loop.  
 2. Loop:
-   - **`BRPOP dispatch:queue`** with timeout (e.g. 5 s) **or**, if Redis unavailable, **`sleep`** + **`try_claim_next_pending`** on PostgreSQL only.
+   - **`BRPOP dispatch:queue`** with timeout (e.g. 5 s) **or**, if Redis unavailable, **`sleep`** + **`try_claim_next_pending`** on PostgreSQL only.  
+   - **Implementation note:** this repo uses **Upstash Redis REST**, which does not support blocking **`BRPOP`** cleanly over HTTP; the API worker uses **`LPOP dispatch:queue`** plus a **~5 s idle sleep** when the list is empty (same wake cadence, non-blocking requests).
    - For each **`order_id`**, load matching **`dispatch_outbox`** row(s); **claim** with **`SKIP LOCKED`**.
    - **Guard:** `COUNT(*) FROM order_dispatches WHERE order_id = ?` **== 0** (bootstrap) before calling **`advance_dispatch_round`**; if already has dispatches, mark outbox **`done`** (idempotent duplicate delivery).
    - Call **`advance_dispatch_round(pool, order_id, &config, redis_helper)`** — same as internal advance.
@@ -304,21 +305,24 @@ Choose **one** deployment shape first; you can split binaries later.
 2. Schedule in production (cron hitting your internal route with **`X-Internal-Secret`**, or external scheduler).
 3. Test: force **`lease_expires_at`** in the past → row becomes **`pending`** again and is processed.
 
+**v1 wiring:** The API implements **`reconcile_stale_outbox`** in the dispatch writer crate, exposes **`POST /internal/dispatch/reconcile-outbox`** (same auth as **`expire-due`**), and runs the same reconcile step automatically at the **end** of each **`POST /internal/dispatch/expire-due`** tick so a single cron can cover OD-5 expiry plus DQ-3 lease reclaim and orphan nudges.
+
 ### 12.7 Configuration and limits
 
 | Setting | Purpose |
 |---------|---------|
-| `DISPATCH_OUTBOX_LEASE_SECS` | Max time a worker may hold **`processing`** before reclaim |
-| `DISPATCH_OUTBOX_MAX_ATTEMPTS` | After N failures → **`failed`** + alert |
-| `DISPATCH_QUEUE_REDIS_KEY` | Default **`dispatch:queue`** |
-| Worker concurrency | Start with **1** consumer per Redis LIST semantics; scale with Streams later (**§5.2**) |
+| `DISPATCH_OUTBOX_LEASE_SECS` | Lease seconds when a worker claims a row (**`processing`** until reclaim); default **120**. Legacy alias: **`DISPATCH_WORKER_LEASE_SECS`** if unset. |
+| `DISPATCH_OUTBOX_MAX_ATTEMPTS` | After **N** lease-expired reclaim increments (`attempt_count`), row → **`failed`** (`max_attempts_exceeded`). **`0`** or unset = no cap. |
+| `DISPATCH_QUEUE_REDIS_KEY` | Redis LIST name for **`RPUSH`/`LPOP`** (default **`dispatch:queue`**) |
+| `DISPATCH_QUEUE_WORKER_CONCURRENCY` | In-process worker task count (**1..8**, default **1**); requires **`DISPATCH_QUEUE_WORKER_ENABLED`**. For scale-out beyond LIST semantics see **§5.2** (Streams). |
 
-Document defaults in **`.env.example`** (or repo env template).
+Defaults and comments: [`apps/api/.env.example`](../../apps/api/.env.example) (Dispatch writer section).
 
 ### 12.8 Observability (ties to §8)
 
 1. Emit structured fields: **`order_id`**, **`outbox.id`**, **`match_pass`**, **`AdvanceDispatchOutcome`**, Redis errors.
-2. Optional metrics: **`dispatch_outbox_pending`**, **`dispatch_queue_rpush_failures_total`**.
+2. **Implemented metrics** (Prometheus): **`dispatch_queue_rpush_failures_total`** (counter on create-order **`RPUSH dispatch:queue`** failure after DB commit), **`dispatch_outbox_pending`** (gauge: `COUNT(*)` of **`dispatch_outbox`** rows with **`status = 'pending'`**, refreshed at the end of **`reconcile_stale_outbox`**, including the step run after **`expire-due`**).
+3. **Structured logs:** `advance_dispatch_round` emits **`tracing::info!(target = "dispatch", …)`** lines with message **`dispatch_advance_outcome`** and stable fields **`outcome`** / **`match_pass`** (`none` before matcher, **`strict`** / **`city_fallback`** after matcher). The dispatch worker emits **`dispatch_worker_job`** with **`outbox_id`**, **`job_kind`**, and the same **`outcome`** strings where applicable. Filter dispatch paths with **`target = "dispatch"`**.
 
 ### 12.9 Final verification
 

@@ -1,0 +1,12 @@
+{
+  "service_category_id": "f1111111-1111-4111-8111-222222220004",
+  "city_id": "f1111111-1111-4111-8111-222222220001",
+  "area_id": "f1111111-1111-4111-8111-222222220007",
+  "street_id": "f1111111-1111-4111-8111-222222220008",
+  "address_line": "22 East Wharf Street (city fallback test)",
+  "lat": 41.7155,
+  "lng": 44.7855,
+  "description": "Order in East area — expect matcher city_fallback vs Central-only plumbers.",
+  "urgency": "normal",
+  "media": []
+}

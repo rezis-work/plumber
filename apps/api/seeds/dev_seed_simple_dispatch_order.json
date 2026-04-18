@@ -1,0 +1,12 @@
+{
+  "service_category_id": "f1111111-1111-4111-8111-222222220004",
+  "city_id": "f1111111-1111-4111-8111-222222220001",
+  "area_id": "f1111111-1111-4111-8111-222222220002",
+  "street_id": "f1111111-1111-4111-8111-222222220003",
+  "address_line": "10 Simple Street",
+  "lat": 41.7155,
+  "lng": 44.7855,
+  "description": "Leak — simple one-city seed.",
+  "urgency": "normal",
+  "media": []
+}

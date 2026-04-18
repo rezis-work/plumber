@@ -107,6 +107,18 @@ pub fn record_token_grants(tokens: i32) {
     metrics::counter!("plumber_token_grants_total").increment(tokens as u64);
 }
 
+/// Implementation 004 §12.8 — `POST /orders` RPUSH to `dispatch:queue` failed after DB commit.
+pub fn record_dispatch_queue_rpush_failure() {
+    init_metrics();
+    metrics::counter!("dispatch_queue_rpush_failures_total").increment(1);
+}
+
+/// Implementation 004 §12.8 — snapshot of `dispatch_outbox` rows in **`pending`** (refreshed after reconcile).
+pub fn set_dispatch_outbox_pending(count: u64) {
+    init_metrics();
+    metrics::gauge!("dispatch_outbox_pending").set(count as f64);
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -116,5 +128,18 @@ mod tests {
         super::record_time_to_first_offer_seconds(1.5);
         super::record_dispatch_rounds_on_complete(3);
         assert!(!super::metrics_render().is_empty());
+    }
+
+    #[test]
+    fn dispatch_metrics_record_and_render() {
+        super::init_metrics();
+        super::record_dispatch_queue_rpush_failure();
+        super::set_dispatch_outbox_pending(7);
+        let body = super::metrics_render();
+        assert!(
+            body.contains("dispatch_queue_rpush_failures_total"),
+            "{body}"
+        );
+        assert!(body.contains("dispatch_outbox_pending"), "{body}");
     }
 }
