@@ -24,8 +24,11 @@ If you ever add a Node service, **mirror the same SQL**; PostgreSQL remains the 
 | **1 — Do this first** | [implementation_003_domain_modeling/implementation_003_phase2_rust_sqlx_step_by_step.md](./implementation_003_domain_modeling/implementation_003_phase2_rust_sqlx_step_by_step.md) | **Ordered migration steps**, `sqlx` workflow, Rust module layout, verification checklist, Parts 1–4 (stack-native) |
 | **2 — Reference while coding** | [implementation_003_domain_modeling/implementation_003_domain_modeling.md](./implementation_003_domain_modeling/implementation_003_domain_modeling.md) | **Full data dictionary:** every enum, table, column, FK, index, identity rules (`orders.client_id` → `users.id`, plumber FKs → `plumber_profiles.id`), ON DELETE behavior |
 | **3 — After Phase 2 schema** | [implementation_003_domain_modeling/implementation_003_orders_dispatch_tokens_redis.md](./implementation_003_domain_modeling/implementation_003_orders_dispatch_tokens_redis.md) | Order **media**, **multi-round** dispatch, **token ledger**, **Redis (Upstash)** — extends schema with extra tables/columns |
+| **4 — Auto-start dispatch** | [implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md](./implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md) | **Work queue:** transactional **outbox** in PostgreSQL + **Redis** signal; workers; idempotency with `advance_dispatch_round` |
 
 **Folder overview:** [implementation_003_domain_modeling/README.md](./implementation_003_domain_modeling/README.md)
+
+**Dispatch queue index:** [implementation_004_dispatch_queue.md](./implementation_004_dispatch_queue.md)
 
 ---
 
@@ -41,7 +44,7 @@ If you ever add a Node service, **mirror the same SQL**; PostgreSQL remains the 
 8. **Operations** — `orders`, `order_dispatches`, `reviews`, `admin_audit_logs`.  
 9. **Indexes** — as in the reference doc (admin filters, dispatch pre-filter, analytics).  
 10. **Seeds** — optional cities/services for dev.  
-11. **Next** — orders/dispatch/tokens/Redis guide.
+11. **Next** — orders/dispatch/tokens/Redis guide ([003 orders doc](./implementation_003_domain_modeling/implementation_003_orders_dispatch_tokens_redis.md)), then **dispatch work queue** ([004](./implementation_004_dispatch_queue.md)).
 
 Details and commands: **step-by-step guide** (row 1 in the table above).
 

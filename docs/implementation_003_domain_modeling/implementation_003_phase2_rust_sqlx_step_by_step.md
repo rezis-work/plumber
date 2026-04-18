@@ -203,7 +203,8 @@ Indexes: (admin_id, created_at DESC), (entity_type, entity_id), (created_at DESC
 4. **Street uniqueness:** Use **partial unique indexes** for NULL `area_id` (see domain doc).  
 5. **Price guides:** Defer strict UNIQUE (category, city, area) until product defines “one row per scope”; add when admin UI is clear.  
 6. **PostGIS:** Not required for Phase 2; add `geography` column + GIST later if Haversine in SQL becomes hot.  
-7. **Next doc:** Implement **`order_media`**, **`offer_round`**, token ledger per [orders/dispatch/redis guide](./implementation_003_orders_dispatch_tokens_redis.md)—not in minimal Phase 2 unless you want one fewer migration wave.
+7. **Next doc:** Implement **`order_media`**, **`offer_round`**, token ledger per [orders/dispatch/redis guide](./implementation_003_orders_dispatch_tokens_redis.md)—not in minimal Phase 2 unless you want one fewer migration wave.  
+8. **After dispatch behavior exists:** [Implementation 004 — dispatch queue](../implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md) — PostgreSQL outbox + Redis so **`POST /orders`** does not rely on manual internal advance.
 
 ---
 

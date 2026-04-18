@@ -330,8 +330,9 @@ Implement in **phases**; paths are illustrative.
 
 ## 12. Relation to future specs
 
-- **Implementation 004 (Dispatch)** can narrow to **matching v2** (ML, traffic), **notifications**, and **maps**.
-- **Implementation 005 (Admin)** can add **token adjustments**, **fraud review**, and **settings UI** for TTLs and thresholds.
+- **Implementation 004** — [**Dispatch work queue (Redis + PostgreSQL SOT)**](../implementation_004_dispatch_queue/implementation_004_dispatch_queue_redis_postgres.md): auto-start first-round matching after `POST /orders` without blocking the HTTP handler.
+- **Later (Dispatch / platform)** — **matching v2** (ML, traffic), **notifications**, **maps**, **real-time** (WebSocket/SSE).
+- **Implementation 005 (Admin)** — **token adjustments**, **fraud review**, **settings UI** for TTLs and thresholds (numbers are illustrative until locked).
 
 ---
 
